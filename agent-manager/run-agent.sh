@@ -14,6 +14,7 @@ fi
 
 echo "=== Executor: Running agent '$AGENT_NAME' ==="
 echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "Project Context: $AGENT_PROJECT_NAME"
 echo "Agent: $AGENT_NAME"
 echo "Payload size: $(echo -n "$PAYLOAD" | wc -c) bytes"
 
@@ -28,7 +29,7 @@ echo "Summary: $SUMMARY"
 echo ""
 
 # Create a temporary file for the agent's working directory
-WORK_DIR="/tmp/agent-work-$AGENT_NAME-$$"
+WORK_DIR="/tmp/agent-work-$AGENT_NAME-$"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 

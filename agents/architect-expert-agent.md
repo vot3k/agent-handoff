@@ -155,29 +155,10 @@ integration:
 ## Unified Handoff Schema
 
 ### Handoff Protocol
-```yaml
-handoff_schema:
-  metadata:
-    from_agent: architect-expert        # This agent name
-    to_agent: string                    # Target agent name
-    timestamp: ISO8601                  # Automatic timestamp
-    task_context: string                # Current task description
-    priority: high|medium|low           # Task priority
-  
-  content:
-    summary: string                     # Brief summary of work done
-    requirements: string[]              # Requirements addressed
-    artifacts:
-      created: string[]                 # New files created
-      modified: string[]                # Files modified
-      reviewed: string[]                # Files reviewed
-    technical_details: object           # Architecture-specific technical details
-    next_steps: string[]                # Recommended actions
-  
-  validation:
-    schema_version: "1.0"
-    checksum: string                    # Content integrity check
-```
+
+This agent communicates using the Redis-based Agent Handoff System. Handoffs are structured as JSON payloads conforming to the unified schema and are sent to the appropriate agent queue.
+
+When handing off to an implementation agent like `api-expert` or `golang-expert`, the `architect-expert` generates a handoff payload containing the architectural patterns, service boundaries, and technical requirements.
 
 ### Architect Expert Handoff Examples
 

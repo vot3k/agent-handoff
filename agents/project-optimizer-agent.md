@@ -157,6 +157,8 @@ build:
 
 ## Unified Handoff Schema
 
+This agent communicates using the Redis-based Agent Handoff System. Handoffs are structured as JSON payloads and sent to the appropriate agent queue.
+
 ### Handoff Protocol
 ```yaml
 handoff_schema:
@@ -185,6 +187,7 @@ handoff_schema:
 ### Project Optimizer Handoff Examples
 
 #### Example: Build Optimization → DevOps Expert
+This handoff is sent as a JSON payload to the `handoff:queue:devops-expert` Redis queue.
 ```yaml
 ---
 metadata:

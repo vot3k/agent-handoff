@@ -116,20 +116,20 @@ type Subscription { userUpdated(userId: ID!): User! }
 # From files: architecture/*.md, existing_apis, database_schema
 ```
 
-### Communication via Files
-```yaml
-# Reads: architecture/system-design.md, .claude/handoffs/*-to-api.md, security/requirements.md
-# Writes: specs/api-design.md, specs/openapi.yaml, .claude/handoffs/api-to-*.md
+### Communication Protocol
 
-# Handoff Template:
-# metadata: {from_agent, to_agent, timestamp, task_context, priority}
-# content: {summary, requirements[], artifacts{created[], modified[]}, technical_details{endpoints[], schemas[], error_codes[], auth_methods[], rate_limits, versioning}, next_steps[]}
-# validation: {schema_version, checksum}
+This agent interacts with the Agent Handoff System via Redis queues.
 
-# To typescript-expert: API client, React hooks, frontend error handling
-# To golang-expert: HTTP handlers, JWT middleware, validation logic, DB models
-# From architect: service_boundaries, integration_requirements, performance_constraints
-```
+**Receiving Handoffs**:
+- The `api-expert` agent monitors its dedicated Redis queue (`handoff:queue:api-expert`) for incoming tasks from other agents like `architect-expert`.
+- Handoffs are received as JSON payloads containing system requirements, architectural documents, and other necessary context.
+
+**Publishing Handoffs**:
+- After completing API design, this agent creates a new handoff payload.
+- The payload, containing OpenAPI specs, data models, and implementation details, is published to the Redis queue of the target agent (e.g., `handoff:queue:golang-expert` or `handoff:queue:typescript-expert`).
+
+**Handoff Content**:
+- The `technical_details` section of the handoff payload is populated with API-specific information such as endpoints, schemas, authentication methods, and versioning strategies.
 
 ## Performance Optimization
 

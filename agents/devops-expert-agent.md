@@ -390,31 +390,20 @@ input_expectations:
   from_files: [package.json, requirements.txt, go.mod, .claude/handoffs/*-to-devops.md]
 ```
 
-### Communication via Files
-```yaml
-file_based_integration:
-  reads_from:
-    - .claude/handoffs/*-to-devops.md
-    - src/
-    - test-results/
-    - security/requirements.md
-  
-  writes_to:
-    - .github/workflows/
-    - k8s/
-    - monitoring/
-    - .claude/handoffs/devops-to-*.md
-  
-  deployment_workflow:
-    receives_from_test:
-      reads: ".claude/handoffs/[timestamp]-test-to-devops.md"
-      checks: [all_tests_passing, coverage_threshold_met, performance_acceptable]
-      creates: [".github/workflows/deploy.yml", "k8s/deployment.yaml"]
-    
-    deployment_handoff:
-      file: ".claude/handoffs/[timestamp]-devops-deployment.md"
-      includes: ["Deployment URL", "Version", "Monitoring", "Rollback procedure"]
-```
+### Communication Protocol
+
+This agent interacts with the Agent Handoff System via Redis queues.
+
+**Receiving Handoffs**:
+- The `devops-expert` consumes handoff payloads from other agents (e.g., `test-expert`, `golang-expert`) via its dedicated Redis queue: `handoff:queue:devops-expert`.
+- These handoffs typically contain test results, build requirements, and deployment configurations.
+
+**Publishing Handoffs**:
+- After a deployment, this agent publishes a handoff payload to the relevant agent's queue (e.g., `project-manager`).
+- The payload includes the deployment URL, version, health status, and rollback procedures.
+
+**Workflow Integration**:
+- A deployment workflow is triggered when a handoff is received from `test-expert` indicating that all quality gates have passed. The `devops-expert` then proceeds to create deployment configurations and execute the deployment.
 
 ## Performance Optimization
 

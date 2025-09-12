@@ -126,17 +126,7 @@ The Agent Manager uses environment variables for configuration:
 export REDIS_ADDR="localhost:6379"  # Redis connection string
 ```
 
-Agent queues are configured in `main.go`:
-
-```go
-queues := []string{
-    "handoff:queue:api-expert",
-    "handoff:queue:golang-expert",
-    "handoff:queue:typescript-expert",
-    "handoff:queue:test-expert",
-    // Add more agents as needed
-}
-```
+As of the latest update, the Agent Manager in `main.go` no longer uses a static list of queues. It dynamically discovers and listens on all project-specific queues that match the pattern `handoff:project:*:queue:*`. This allows it to handle multiple projects concurrently without manual configuration for each new project.
 
 ### Handoff Library
 
@@ -151,7 +141,7 @@ Configuration via JSON file:
   "agents": [
     {
       "name": "golang-expert",
-      "queue_name": "handoff:queue:golang-expert",
+      "queue_name": "handoff:project:my-project:queue:golang-expert",
       "max_concurrent": 3
     }
   ],
@@ -192,6 +182,7 @@ import (
 
 type HandoffPayload struct {
     Metadata struct {
+        ProjectName string    `json:"project_name"`
         FromAgent   string    `json:"from_agent"`
         ToAgent     string    `json:"to_agent"`
         Timestamp   time.Time `json:"timestamp"`
@@ -227,8 +218,8 @@ func publishHandoff(rdb *redis.Client, handoff HandoffPayload) error {
         return err
     }
     
-    // Add to priority queue
-    queueName := fmt.Sprintf("handoff:queue:%s", handoff.Metadata.ToAgent)
+    // Add to priority queue for a specific project
+    queueName := fmt.Sprintf("handoff:project:%s:queue:%s", handoff.Metadata.ProjectName, handoff.Metadata.ToAgent)
     score := 3.0 + float64(time.Now().UnixNano())/1e18 // Priority + timestamp
     
     return rdb.ZAdd(ctx, queueName, &redis.Z{
@@ -276,6 +267,7 @@ exit 0
 
 ```yaml
 metadata:
+  project_name: string       # Name of the project context
   from_agent: string          # Source agent identifier
   to_agent: string            # Target agent identifier  
   timestamp: datetime         # ISO8601 timestamp
@@ -331,31 +323,32 @@ technical_details:
 
 ### Queue Monitoring
 
-Check queue depths:
+Check queue depths for a specific project:
 
 ```bash
-redis-cli ZCARD handoff:queue:golang-expert
-redis-cli ZCARD handoff:queue:api-expert
+redis-cli ZCARD handoff:project:my-project:queue:golang-expert
+redis-cli ZCARD handoff:project:my-project:queue:api-expert
 ```
 
 View queued handoffs:
 
 ```bash
-redis-cli ZRANGE handoff:queue:golang-expert 0 -1 WITHSCORES
+redis-cli ZRANGE handoff:project:my-project:queue:golang-expert 0 -1 WITHSCORES
 ```
 
 ### Archive Analysis
 
-Completed handoffs are archived to `agent-manager/archive/`:
+Completed handoffs are archived to `agent-manager/archive/` in project-specific directories:
 
 ```
 archive/
-├── 2024-01-15/
-│   ├── 20240115T143022Z-api-expert-abc12345.json
-│   ├── 20240115T143545Z-golang-expert-def67890.json
-│   └── 20240115T144012Z-test-expert-ghi13579.json
-└── 2024-01-16/
-    └── ...
+└── my-project/
+    ├── 2024-01-15/
+    │   ├── 20240115T143022Z-api-expert-abc12345.json
+    │   ├── 20240115T143545Z-golang-expert-def67890.json
+    │   └── 20240115T144012Z-test-expert-ghi13579.json
+    └── 2024-01-16/
+        └── ...
 ```
 
 Each file contains the complete handoff payload for audit and debugging.
@@ -443,14 +436,14 @@ docker-compose restart redis
 
 **Agent Manager Not Processing**
 ```bash
-# Check if queues have messages
-redis-cli ZCARD handoff:queue:api-expert
+# Check if queues have messages for a specific project
+redis-cli ZCARD handoff:project:my-project:queue:api-expert
 
 # Check Agent Manager logs
 grep ERROR agent-manager.log
 
-# Verify queue naming matches
-redis-cli KEYS "handoff:queue:*"
+# Verify queue naming matches by scanning for all queues
+redis-cli KEYS "handoff:project:*:queue:*"
 ```
 
 **Handoffs Stuck in Processing**
@@ -462,7 +455,7 @@ grep "FAILURE" agent-manager.log
 redis-cli GET handoff:12345abc-def
 
 # Clear stuck queues if needed
-redis-cli DEL handoff:queue:problematic-agent
+redis-cli DEL handoff:project:my-project:queue:problematic-agent
 ```
 
 **run-agent.sh Permissions**

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -14,6 +15,7 @@ import (
 // TestHandoff creates a test handoff message
 type TestHandoff struct {
 	Metadata struct {
+		ProjectName string    `json:"project_name"`
 		FromAgent   string    `json:"from_agent"`
 		ToAgent     string    `json:"to_agent"`
 		Timestamp   time.Time `json:"timestamp"`
@@ -47,6 +49,13 @@ func main() {
 		message = os.Args[3]
 	}
 
+	// Get project name from current working directory
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to get current directory: %v", err)
+	}
+	projectName := filepath.Base(wd)
+
 	ctx := context.Background()
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
@@ -67,6 +76,7 @@ func main() {
 		UpdatedAt: time.Now(),
 	}
 
+	handoff.Metadata.ProjectName = projectName
 	handoff.Metadata.FromAgent = fromAgent
 	handoff.Metadata.ToAgent = toAgent
 	handoff.Metadata.Timestamp = time.Now()
@@ -105,7 +115,7 @@ func main() {
 	}
 
 	// Determine target queue
-	queueName := fmt.Sprintf("handoff:queue:%s", toAgent)
+	queueName := fmt.Sprintf("handoff:project:%s:queue:%s", projectName, toAgent)
 
 	// Store handoff data in Redis with expiration (24 hours)
 	handoffKey := fmt.Sprintf("handoff:%s", handoff.Metadata.HandoffID)
@@ -124,6 +134,7 @@ func main() {
 	}
 
 	fmt.Printf("✅ Published handoff to queue: %s\n", queueName)
+	fmt.Printf("Project: %s\n", projectName)
 	fmt.Printf("📨 Handoff ID: %s\n", handoff.Metadata.HandoffID)
 	fmt.Printf("🔄 From: %s → To: %s\n", fromAgent, toAgent)
 	fmt.Printf("📝 Summary: %s\n", message)

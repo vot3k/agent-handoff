@@ -17,20 +17,20 @@ type HandoffRouter struct {
 
 // RouteRule defines conditions for routing a handoff to an agent
 type RouteRule struct {
-	Name        string            `json:"name"`
-	TargetAgent string            `json:"target_agent"`
-	Priority    int               `json:"priority"` // Higher number = higher priority
-	Conditions  []RouteCondition  `json:"conditions"`
-	Transforms  []RouteTransform  `json:"transforms,omitempty"`
+	Name        string           `json:"name"`
+	TargetAgent string           `json:"target_agent"`
+	Priority    int              `json:"priority"` // Higher number = higher priority
+	Conditions  []RouteCondition `json:"conditions"`
+	Transforms  []RouteTransform `json:"transforms,omitempty"`
 }
 
 // RouteCondition defines a condition that must be met for the rule to apply
 type RouteCondition struct {
-	Type      ConditionType `json:"type"`
-	Field     string        `json:"field"`
-	Operator  string        `json:"operator"`
-	Value     interface{}   `json:"value"`
-	CaseSensitive bool      `json:"case_sensitive,omitempty"`
+	Type          ConditionType `json:"type"`
+	Field         string        `json:"field"`
+	Operator      string        `json:"operator"`
+	Value         interface{}   `json:"value"`
+	CaseSensitive bool          `json:"case_sensitive,omitempty"`
 }
 
 // RouteTransform defines how to modify a handoff before routing
@@ -45,21 +45,21 @@ type RouteTransform struct {
 type ConditionType string
 
 const (
-	ConditionContent      ConditionType = "content"      // Check content fields
-	ConditionMetadata     ConditionType = "metadata"     // Check metadata fields
-	ConditionTechnical    ConditionType = "technical"    // Check technical details
-	ConditionArtifact     ConditionType = "artifact"     // Check artifact patterns
-	ConditionComplexQuery ConditionType = "complex"      // Complex query conditions
+	ConditionContent      ConditionType = "content"   // Check content fields
+	ConditionMetadata     ConditionType = "metadata"  // Check metadata fields
+	ConditionTechnical    ConditionType = "technical" // Check technical details
+	ConditionArtifact     ConditionType = "artifact"  // Check artifact patterns
+	ConditionComplexQuery ConditionType = "complex"   // Complex query conditions
 )
 
 // TransformType defines the type of transformation
 type TransformType string
 
 const (
-	TransformMetadata  TransformType = "metadata"   // Modify metadata
-	TransformContent   TransformType = "content"    // Modify content
-	TransformTechnical TransformType = "technical"  // Modify technical details
-	TransformPriority  TransformType = "priority"   // Modify priority
+	TransformMetadata  TransformType = "metadata"  // Modify metadata
+	TransformContent   TransformType = "content"   // Modify content
+	TransformTechnical TransformType = "technical" // Modify technical details
+	TransformPriority  TransformType = "priority"  // Modify priority
 )
 
 // NewHandoffRouter creates a new handoff router
@@ -74,13 +74,13 @@ func NewHandoffRouter(fallbackAgent string) *HandoffRouter {
 func (r *HandoffRouter) AddRoute(fromAgent string, rule RouteRule) {
 	r.routesMutex.Lock()
 	defer r.routesMutex.Unlock()
-	
+
 	if r.routes[fromAgent] == nil {
 		r.routes[fromAgent] = make([]RouteRule, 0)
 	}
-	
+
 	r.routes[fromAgent] = append(r.routes[fromAgent], rule)
-	
+
 	// Sort by priority (higher first)
 	rules := r.routes[fromAgent]
 	for i := 0; i < len(rules); i++ {
@@ -96,10 +96,10 @@ func (r *HandoffRouter) AddRoute(fromAgent string, rule RouteRule) {
 func (r *HandoffRouter) RouteHandoff(ctx context.Context, handoff *Handoff) (string, error) {
 	r.routesMutex.RLock()
 	defer r.routesMutex.RUnlock()
-	
+
 	fromAgent := handoff.Metadata.FromAgent
 	rules, exists := r.routes[fromAgent]
-	
+
 	if !exists || len(rules) == 0 {
 		// No specific rules, use the target agent from handoff or fallback
 		if handoff.Metadata.ToAgent != "" {
@@ -110,7 +110,7 @@ func (r *HandoffRouter) RouteHandoff(ctx context.Context, handoff *Handoff) (str
 		}
 		return "", fmt.Errorf("no routing rules found for agent %s and no fallback configured", fromAgent)
 	}
-	
+
 	// Evaluate rules in priority order
 	for _, rule := range rules {
 		if r.evaluateRule(handoff, rule) {
@@ -118,20 +118,20 @@ func (r *HandoffRouter) RouteHandoff(ctx context.Context, handoff *Handoff) (str
 			if err := r.applyTransforms(handoff, rule.Transforms); err != nil {
 				return "", fmt.Errorf("failed to apply transforms for rule %s: %w", rule.Name, err)
 			}
-			
+
 			return rule.TargetAgent, nil
 		}
 	}
-	
+
 	// No rules matched, use original target or fallback
 	if handoff.Metadata.ToAgent != "" {
 		return handoff.Metadata.ToAgent, nil
 	}
-	
+
 	if r.fallbackAgent != "" {
 		return r.fallbackAgent, nil
 	}
-	
+
 	return "", fmt.Errorf("no routing rules matched and no fallback configured")
 }
 
@@ -148,7 +148,7 @@ func (r *HandoffRouter) evaluateRule(handoff *Handoff, rule RouteRule) bool {
 // evaluateCondition evaluates a single condition
 func (r *HandoffRouter) evaluateCondition(handoff *Handoff, condition RouteCondition) bool {
 	var value interface{}
-	
+
 	switch condition.Type {
 	case ConditionMetadata:
 		value = r.getMetadataValue(handoff, condition.Field)
@@ -163,7 +163,7 @@ func (r *HandoffRouter) evaluateCondition(handoff *Handoff, condition RouteCondi
 	default:
 		return false
 	}
-	
+
 	return r.compareValues(value, condition.Operator, condition.Value, condition.CaseSensitive)
 }
 
@@ -227,9 +227,9 @@ func (r *HandoffRouter) getArtifactValue(handoff *Handoff, field string) interfa
 	case "reviewed_count":
 		return len(handoff.Content.Artifacts.Reviewed)
 	case "total_artifacts":
-		return len(handoff.Content.Artifacts.Created) + 
-			   len(handoff.Content.Artifacts.Modified) + 
-			   len(handoff.Content.Artifacts.Reviewed)
+		return len(handoff.Content.Artifacts.Created) +
+			len(handoff.Content.Artifacts.Modified) +
+			len(handoff.Content.Artifacts.Reviewed)
 	default:
 		return nil
 	}
@@ -238,34 +238,34 @@ func (r *HandoffRouter) getArtifactValue(handoff *Handoff, field string) interfa
 // evaluateComplexQuery handles complex query conditions
 func (r *HandoffRouter) evaluateComplexQuery(handoff *Handoff, condition RouteCondition) bool {
 	query := condition.Field
-	
+
 	switch query {
 	case "has_go_files":
 		return r.hasFilesWithExtension(handoff, ".go")
 	case "has_typescript_files":
 		return r.hasFilesWithExtension(handoff, ".ts") || r.hasFilesWithExtension(handoff, ".tsx")
 	case "has_test_files":
-		return r.hasFilesWithPattern(handoff, "_test.") || 
-			   r.hasFilesWithPattern(handoff, ".test.") ||
-			   r.hasFilesWithPattern(handoff, "/test/")
+		return r.hasFilesWithPattern(handoff, "_test.") ||
+			r.hasFilesWithPattern(handoff, ".test.") ||
+			r.hasFilesWithPattern(handoff, "/test/")
 	case "has_api_spec":
-		return r.hasFilesWithExtension(handoff, ".yaml") || 
-			   r.hasFilesWithExtension(handoff, ".yml") ||
-			   r.hasFilesWithPattern(handoff, "openapi") ||
-			   r.hasFilesWithPattern(handoff, "swagger")
+		return r.hasFilesWithExtension(handoff, ".yaml") ||
+			r.hasFilesWithExtension(handoff, ".yml") ||
+			r.hasFilesWithPattern(handoff, "openapi") ||
+			r.hasFilesWithPattern(handoff, "swagger")
 	case "is_implementation_handoff":
 		return strings.Contains(strings.ToLower(handoff.Content.Summary), "implement") ||
-			   strings.Contains(strings.ToLower(handoff.Content.Summary), "code") ||
-			   len(handoff.Content.Artifacts.Created) > 0
+			strings.Contains(strings.ToLower(handoff.Content.Summary), "code") ||
+			len(handoff.Content.Artifacts.Created) > 0
 	case "is_testing_handoff":
 		return strings.Contains(strings.ToLower(handoff.Content.Summary), "test") ||
-			   strings.Contains(strings.ToLower(handoff.Content.Summary), "coverage") ||
-			   r.hasFilesWithPattern(handoff, "test")
+			strings.Contains(strings.ToLower(handoff.Content.Summary), "coverage") ||
+			r.hasFilesWithPattern(handoff, "test")
 	case "is_deployment_handoff":
 		return strings.Contains(strings.ToLower(handoff.Content.Summary), "deploy") ||
-			   strings.Contains(strings.ToLower(handoff.Content.Summary), "docker") ||
-			   r.hasFilesWithPattern(handoff, "deploy") ||
-			   r.hasFilesWithPattern(handoff, "docker")
+			strings.Contains(strings.ToLower(handoff.Content.Summary), "docker") ||
+			r.hasFilesWithPattern(handoff, "deploy") ||
+			r.hasFilesWithPattern(handoff, "docker")
 	default:
 		return false
 	}
@@ -275,7 +275,7 @@ func (r *HandoffRouter) evaluateComplexQuery(handoff *Handoff, condition RouteCo
 func (r *HandoffRouter) hasFilesWithExtension(handoff *Handoff, ext string) bool {
 	allFiles := append(handoff.Content.Artifacts.Created, handoff.Content.Artifacts.Modified...)
 	allFiles = append(allFiles, handoff.Content.Artifacts.Reviewed...)
-	
+
 	for _, file := range allFiles {
 		if strings.HasSuffix(strings.ToLower(file), ext) {
 			return true
@@ -288,7 +288,7 @@ func (r *HandoffRouter) hasFilesWithExtension(handoff *Handoff, ext string) bool
 func (r *HandoffRouter) hasFilesWithPattern(handoff *Handoff, pattern string) bool {
 	allFiles := append(handoff.Content.Artifacts.Created, handoff.Content.Artifacts.Modified...)
 	allFiles = append(allFiles, handoff.Content.Artifacts.Reviewed...)
-	
+
 	for _, file := range allFiles {
 		if strings.Contains(strings.ToLower(file), strings.ToLower(pattern)) {
 			return true
@@ -334,10 +334,10 @@ func (r *HandoffRouter) valuesEqual(actual, expected interface{}, caseSensitive 
 	if actual == nil || expected == nil {
 		return actual == expected
 	}
-	
+
 	actualStr := fmt.Sprintf("%v", actual)
 	expectedStr := fmt.Sprintf("%v", expected)
-	
+
 	if !caseSensitive {
 		return strings.EqualFold(actualStr, expectedStr)
 	}
@@ -347,7 +347,7 @@ func (r *HandoffRouter) valuesEqual(actual, expected interface{}, caseSensitive 
 func (r *HandoffRouter) valueContains(actual, expected interface{}, caseSensitive bool) bool {
 	actualStr := fmt.Sprintf("%v", actual)
 	expectedStr := fmt.Sprintf("%v", expected)
-	
+
 	if !caseSensitive {
 		return strings.Contains(strings.ToLower(actualStr), strings.ToLower(expectedStr))
 	}
@@ -357,7 +357,7 @@ func (r *HandoffRouter) valueContains(actual, expected interface{}, caseSensitiv
 func (r *HandoffRouter) valueStartsWith(actual, expected interface{}, caseSensitive bool) bool {
 	actualStr := fmt.Sprintf("%v", actual)
 	expectedStr := fmt.Sprintf("%v", expected)
-	
+
 	if !caseSensitive {
 		return strings.HasPrefix(strings.ToLower(actualStr), strings.ToLower(expectedStr))
 	}
@@ -367,7 +367,7 @@ func (r *HandoffRouter) valueStartsWith(actual, expected interface{}, caseSensit
 func (r *HandoffRouter) valueEndsWith(actual, expected interface{}, caseSensitive bool) bool {
 	actualStr := fmt.Sprintf("%v", actual)
 	expectedStr := fmt.Sprintf("%v", expected)
-	
+
 	if !caseSensitive {
 		return strings.HasSuffix(strings.ToLower(actualStr), strings.ToLower(expectedStr))
 	}
@@ -403,7 +403,7 @@ func (r *HandoffRouter) valueIn(actual, expected interface{}, caseSensitive bool
 	if !ok {
 		return false
 	}
-	
+
 	for _, item := range expectedSlice {
 		if r.valuesEqual(actual, item, caseSensitive) {
 			return true
@@ -415,7 +415,7 @@ func (r *HandoffRouter) valueIn(actual, expected interface{}, caseSensitive bool
 func (r *HandoffRouter) valueMatchesRegex(actual, expected interface{}) bool {
 	actualStr := fmt.Sprintf("%v", actual)
 	pattern := fmt.Sprintf("%v", expected)
-	
+
 	matched, err := regexp.MatchString(pattern, actualStr)
 	return err == nil && matched
 }
@@ -519,7 +519,7 @@ func (r *HandoffRouter) transformTechnical(handoff *Handoff, transform RouteTran
 	if handoff.Content.TechnicalDetails == nil {
 		handoff.Content.TechnicalDetails = make(map[string]interface{})
 	}
-	
+
 	switch transform.Action {
 	case "set":
 		handoff.Content.TechnicalDetails[transform.Field] = transform.Value

@@ -119,32 +119,38 @@ workflow_registry:
 
 ## Knowledge Sharing Protocol
 
-### Handoff File Format
-```markdown
-# Agent Handoff: [From Agent] → [To Agent]
-Date: [ISO 8601 timestamp]
-Task: [Brief task description]
+Inter-agent communication is managed by a Redis-based handoff system. Instead of creating markdown files, agents construct a JSON payload conforming to the **Unified Handoff Schema** and publish it to a specific agent's queue in Redis.
 
-## Context
-- Project: [project name]
-- Previous work: [summary of what was done]
-- Related files: [list of relevant files]
+The `agent-manager` listens on these queues, and upon receiving a message, it dispatches the task to the appropriate agent.
 
-## Requirements
-- [Specific requirement 1]
-- [Specific requirement 2]
+### Handoff Message Format
+A handoff is a JSON object with the following structure, which is pushed to a Redis queue for the target agent.
 
-## Technical Details
-[Relevant technical analysis and considerations]
-
-## Artifacts
-- Created: [list of new files]
-- Modified: [list of changed files]
-- Reviewed: [list of analyzed files]
-
-## Next Steps
-1. [Specific action for receiving agent]
-2. [Additional recommended actions]
+```json
+{
+  "metadata": {
+    "from_agent": "string",
+    "to_agent": "string",
+    "timestamp": "datetime",
+    "task_context": "string",
+    "priority": "low|normal|high|critical",
+    "handoff_id": "string"
+  },
+  "content": {
+    "summary": "string",
+    "requirements": ["string"],
+    "artifacts": {
+      "created": ["string"],
+      "modified": ["string"],
+      "reviewed": ["string"]
+    },
+    "technical_details": {},
+    "next_steps": ["string"]
+  },
+  "status": "pending|processing|completed|failed",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
 ```
 
 ## Agent Types and Responsibilities

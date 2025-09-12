@@ -246,6 +246,8 @@ What other options did we evaluate?
 
 ## Unified Handoff Schema
 
+This agent communicates using the Redis-based Agent Handoff System. Handoffs are structured as JSON payloads and sent to the appropriate agent queue.
+
 ### Handoff Protocol
 ```yaml
 handoff_schema:
@@ -274,6 +276,7 @@ handoff_schema:
 ### Tech Writer Handoff Examples
 
 #### Example: Architecture Documentation → Project Manager
+This handoff is sent as a JSON payload to the `handoff:queue:project-manager` Redis queue.
 ```yaml
 ---
 metadata:
@@ -301,8 +304,8 @@ content:
       - "docs/developer-guide.md"
       - "ARCHITECTURE.md"
     reviewed:
-      - ".claude/handoffs/analyzer-to-tech-writer.md"
-      - ".claude/handoffs/architect-to-tech-writer.md"
+      - "handoff payload from architecture-analyzer"
+      - "handoff payload from architect-expert"
   technical_details:
     architecture_docs_created: 4
     adrs_documented: 2
@@ -321,6 +324,7 @@ validation:
 ```
 
 #### Example: API Documentation Complete → Project Manager  
+This handoff is sent as a JSON payload to the `handoff:queue:project-manager` Redis queue.
 ```yaml
 ---
 metadata:

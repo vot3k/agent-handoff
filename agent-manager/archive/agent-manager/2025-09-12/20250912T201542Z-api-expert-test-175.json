@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "project_name": "agent-manager",
+    "from_agent": "architect-expert",
+    "to_agent": "api-expert",
+    "timestamp": "2025-09-12T16:15:42.699095-04:00",
+    "task_context": "test-workflow",
+    "priority": "normal",
+    "handoff_id": "test-1757708142699095000"
+  },
+  "content": {
+    "summary": "Design project-aware auth system",
+    "requirements": [
+      "Process the incoming request",
+      "Generate appropriate output",
+      "Ensure proper error handling"
+    ],
+    "artifacts": {
+      "created": [],
+      "modified": [],
+      "reviewed": []
+    },
+    "technical_details": {
+      "environment": "development",
+      "source": "test-publisher",
+      "test_mode": true,
+      "timestamp": 1757708142
+    },
+    "next_steps": [
+      "Validate input requirements",
+      "Execute agent-specific logic",
+      "Generate output artifacts",
+      "Update handoff status"
+    ]
+  },
+  "status": "pending",
+  "created_at": "2025-09-12T16:15:42.699095-04:00",
+  "updated_at": "2025-09-12T16:15:42.699095-04:00"
+}

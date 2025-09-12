@@ -29,12 +29,13 @@ const (
 
 // Metadata contains handoff tracking information
 type Metadata struct {
-	FromAgent   string    `json:"from_agent" yaml:"from_agent"`
-	ToAgent     string    `json:"to_agent" yaml:"to_agent"`
-	Timestamp   time.Time `json:"timestamp" yaml:"timestamp"`
-	TaskContext string    `json:"task_context" yaml:"task_context"`
-	Priority    Priority  `json:"priority" yaml:"priority"`
-	HandoffID   string    `json:"handoff_id" yaml:"handoff_id"`
+	ProjectName string    `json:"project_name"`
+	FromAgent   string    `json:"from_agent"`
+	ToAgent     string    `json:"to_agent"`
+	Timestamp   time.Time `json:"timestamp"`
+	TaskContext string    `json:"task_context"`
+	Priority    Priority  `json:"priority"`
+	HandoffID   string    `json:"handoff_id"`
 }
 
 // Artifacts represents files created, modified, or reviewed
@@ -61,25 +62,25 @@ type Validation struct {
 
 // Handoff represents a complete agent-to-agent handoff
 type Handoff struct {
-	Metadata   Metadata   `json:"metadata" yaml:"metadata"`
-	Content    Content    `json:"content" yaml:"content"`
-	Validation Validation `json:"validation" yaml:"validation"`
+	Metadata   Metadata      `json:"metadata" yaml:"metadata"`
+	Content    Content       `json:"content" yaml:"content"`
+	Validation Validation    `json:"validation" yaml:"validation"`
 	Status     HandoffStatus `json:"status" yaml:"status"`
-	CreatedAt  time.Time  `json:"created_at" yaml:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at" yaml:"updated_at"`
-	RetryCount int        `json:"retry_count" yaml:"retry_count"`
-	ErrorMsg   string     `json:"error_msg,omitempty" yaml:"error_msg,omitempty"`
+	CreatedAt  time.Time     `json:"created_at" yaml:"created_at"`
+	UpdatedAt  time.Time     `json:"updated_at" yaml:"updated_at"`
+	RetryCount int           `json:"retry_count" yaml:"retry_count"`
+	ErrorMsg   string        `json:"error_msg,omitempty" yaml:"error_msg,omitempty"`
 }
 
 // GenerateChecksum creates a SHA256 checksum of the handoff content
 func (h *Handoff) GenerateChecksum() string {
-	data := fmt.Sprintf("%s:%s:%s:%v:%v", 
-		h.Metadata.FromAgent, 
+	data := fmt.Sprintf("%s:%s:%s:%v:%v",
+		h.Metadata.FromAgent,
 		h.Metadata.ToAgent,
 		h.Content.Summary,
 		h.Content.Requirements,
 		h.Content.NextSteps)
-	
+
 	hash := sha256.Sum256([]byte(data))
 	return fmt.Sprintf("%x", hash)
 }
@@ -115,24 +116,24 @@ type HandoffQueueMessage struct {
 
 // AgentCapabilities describes what an agent can handle
 type AgentCapabilities struct {
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	Triggers     []string `json:"triggers"`
-	InputTypes   []string `json:"input_types"`
-	OutputTypes  []string `json:"output_types"`
-	QueueName    string   `json:"queue_name"`
-	MaxConcurrent int     `json:"max_concurrent"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Triggers      []string `json:"triggers"`
+	InputTypes    []string `json:"input_types"`
+	OutputTypes   []string `json:"output_types"`
+	QueueName     string   `json:"queue_name"`
+	MaxConcurrent int      `json:"max_concurrent"`
 }
 
 // HandoffMetrics contains performance and monitoring data
 type HandoffMetrics struct {
-	TotalHandoffs    int64         `json:"total_handoffs"`
-	CompletedHandoffs int64        `json:"completed_handoffs"`
-	FailedHandoffs   int64         `json:"failed_handoffs"`
+	TotalHandoffs     int64         `json:"total_handoffs"`
+	CompletedHandoffs int64         `json:"completed_handoffs"`
+	FailedHandoffs    int64         `json:"failed_handoffs"`
 	AvgProcessingTime time.Duration `json:"avg_processing_time"`
-	QueueDepth       int64         `json:"queue_depth"`
-	ActiveAgents     []string      `json:"active_agents"`
-	LastUpdated      time.Time     `json:"last_updated"`
+	QueueDepth        int64         `json:"queue_depth"`
+	ActiveAgents      []string      `json:"active_agents"`
+	LastUpdated       time.Time     `json:"last_updated"`
 }
 
 // RetryPolicy defines how failed handoffs should be retried

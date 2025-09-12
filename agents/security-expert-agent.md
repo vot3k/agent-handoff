@@ -221,43 +221,20 @@ technical_details:
   remediation_priority: string      # Fix priority order
 ```
 
-### Communication via Files
-```yaml
-file_based_integration:
-  reads_from:
-    - src/                           # Code to review
-    - .claude/handoffs/*             # Development context
-    - architecture/*.md              # System design
-    - package.json                   # Dependencies
-  
-  writes_to:
-    - security/                      # Security documentation
-    - .claude/handoffs/security-to-*.md  # Security guidance
-    - .claude/reviews/security/      # Review comments
-  
-  proactive_review_flow:
-    monitors:
-      - "git diff"                  # Code changes
-      - "Authentication patterns"   # Auth implementations
-      - "API endpoints"             # New endpoints
-      - "Data handling"             # Sensitive data
-    
-    creates_review:
-      file: ".claude/reviews/security/[timestamp]-review.md"
-      contains:
-        - vulnerabilities_found
-        - risk_assessment
-        - remediation_steps
-        - secure_alternatives
-    
-    handoff_to_developers:
-      file: ".claude/handoffs/[timestamp]-security-to-[developer].md"
-      includes:
-        - "Security Requirements: [specific requirements]"
-        - "Vulnerabilities to Fix: [detailed list]"
-        - "Secure Implementation: [code examples]"
-        - "Testing Requirements: [security tests]"
-```
+### Communication Protocol
+
+This agent uses the Redis-based Agent Handoff System to receive analysis requests and send security advisories.
+
+**Receiving Handoffs**:
+- The `security-expert` consumes handoffs from its dedicated Redis queue (`handoff:queue:security-expert`).
+- Handoffs can be triggered by other agents for proactive reviews of new features, architecture, or code changes.
+
+**Publishing Handoffs**:
+- After a security review, this agent publishes a handoff payload to the relevant agent's queue (e.g., `golang-expert` or `project-manager`).
+- The payload contains vulnerabilities, risk assessments, and remediation steps.
+
+**Proactive Review Flow**:
+- This agent monitors code changes and architectural updates. When a potential security risk is identified, it proactively initiates a review and sends its findings as a handoff to the relevant team.
 
 ## Performance Optimization
 
