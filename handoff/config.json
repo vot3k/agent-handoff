@@ -1,0 +1,162 @@
+{
+  "redis": {
+    "addr": "localhost:6379",
+    "password": "",
+    "db": 0
+  },
+  "logging": {
+    "level": "info"
+  },
+  "agents": [
+    {
+      "name": "api-expert",
+      "description": "API design and specification expert",
+      "triggers": ["api", "endpoint", "swagger", "openapi"],
+      "input_types": ["requirements", "specifications"],
+      "output_types": ["api-spec", "openapi-doc"],
+      "queue_name": "handoff:queue:api-expert",
+      "max_concurrent": 5
+    },
+    {
+      "name": "golang-expert",
+      "description": "Go/Golang implementation expert",
+      "triggers": ["implement", "go", "golang", "backend"],
+      "input_types": ["api-spec", "requirements"],
+      "output_types": ["go-code", "implementation-summary"],
+      "queue_name": "handoff:queue:golang-expert",
+      "max_concurrent": 3
+    },
+    {
+      "name": "typescript-expert",
+      "description": "TypeScript/React implementation expert",
+      "triggers": ["frontend", "typescript", "react", "ui"],
+      "input_types": ["design-spec", "api-spec"],
+      "output_types": ["typescript-code", "react-components"],
+      "queue_name": "handoff:queue:typescript-expert",
+      "max_concurrent": 3
+    },
+    {
+      "name": "test-expert",
+      "description": "Testing and quality assurance expert",
+      "triggers": ["test", "coverage", "qa", "quality"],
+      "input_types": ["implementation", "code"],
+      "output_types": ["test-code", "coverage-report"],
+      "queue_name": "handoff:queue:test-expert",
+      "max_concurrent": 2
+    },
+    {
+      "name": "devops-expert",
+      "description": "DevOps and deployment expert",
+      "triggers": ["deploy", "docker", "kubernetes", "ci/cd"],
+      "input_types": ["implementation", "requirements"],
+      "output_types": ["deployment-config", "ci-config"],
+      "queue_name": "handoff:queue:devops-expert",
+      "max_concurrent": 2
+    }
+  ],
+  "routes": {
+    "api-expert": [
+      {
+        "name": "route-go-implementation",
+        "target_agent": "golang-expert",
+        "priority": 100,
+        "conditions": [
+          {
+            "type": "complex",
+            "field": "has_go_files",
+            "operator": "equals",
+            "value": true,
+            "case_sensitive": false
+          }
+        ]
+      },
+      {
+        "name": "route-typescript-implementation", 
+        "target_agent": "typescript-expert",
+        "priority": 90,
+        "conditions": [
+          {
+            "type": "complex",
+            "field": "has_typescript_files",
+            "operator": "equals",
+            "value": true,
+            "case_sensitive": false
+          }
+        ]
+      }
+    ],
+    "golang-expert": [
+      {
+        "name": "route-to-testing",
+        "target_agent": "test-expert",
+        "priority": 100,
+        "conditions": [
+          {
+            "type": "complex",
+            "field": "is_implementation_handoff",
+            "operator": "equals",
+            "value": true,
+            "case_sensitive": false
+          }
+        ]
+      }
+    ],
+    "test-expert": [
+      {
+        "name": "route-to-deployment",
+        "target_agent": "devops-expert", 
+        "priority": 100,
+        "conditions": [
+          {
+            "type": "content",
+            "field": "summary",
+            "operator": "contains",
+            "value": "deploy"
+          }
+        ]
+      }
+    ]
+  },
+  "alert_rules": [
+    {
+      "name": "high-queue-depth",
+      "type": "queue_depth",
+      "condition": "greater_than",
+      "threshold": 50,
+      "duration": 60000000000,
+      "enabled": true,
+      "cooldown": 300000000000
+    },
+    {
+      "name": "high-failure-rate",
+      "type": "failure_rate", 
+      "condition": "greater_than",
+      "threshold": 10.0,
+      "duration": 300000000000,
+      "enabled": true,
+      "cooldown": 600000000000
+    },
+    {
+      "name": "slow-processing",
+      "type": "processing_time",
+      "condition": "greater_than", 
+      "threshold": 30000,
+      "duration": 120000000000,
+      "enabled": true,
+      "cooldown": 300000000000
+    },
+    {
+      "name": "system-health-low",
+      "type": "system_health",
+      "condition": "less_than",
+      "threshold": 50,
+      "duration": 60000000000,
+      "enabled": true,
+      "cooldown": 600000000000
+    }
+  ],
+  "monitoring": {
+    "enabled": true,
+    "interval": 30000000000
+  }
+}
