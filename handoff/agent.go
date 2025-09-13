@@ -28,11 +28,11 @@ type HandoffAgent struct {
 
 // Config contains HandoffAgent configuration
 type Config struct {
-	RedisAddr     string        `json:"redis_addr"`
-	RedisPassword string        `json:"redis_password,omitempty"`
-	RedisDB       int           `json:"redis_db"`
-	LogLevel      string        `json:"log_level"`
-	RetryPolicy   *RetryPolicy  `json:"retry_policy,omitempty"`
+	RedisAddr     string       `json:"redis_addr"`
+	RedisPassword string       `json:"redis_password,omitempty"`
+	RedisDB       int          `json:"redis_db"`
+	LogLevel      string       `json:"log_level"`
+	RetryPolicy   *RetryPolicy `json:"retry_policy,omitempty"`
 }
 
 // NewHandoffAgent creates a new handoff agent instance
@@ -47,7 +47,7 @@ func NewHandoffAgent(cfg Config) (*HandoffAgent, error) {
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
@@ -151,14 +151,14 @@ func (h *HandoffAgent) PublishHandoff(ctx context.Context, handoff *Handoff) err
 
 	// Push to priority queue (higher priority = lower score)
 	var score float64
-	switch handoff.Metadata.Priority {
-	case PriorityCritical:
+	switch string(handoff.Metadata.Priority) {
+	case string(PriorityCritical):
 		score = 1
-	case PriorityHigh:
+	case string(PriorityHigh):
 		score = 2
-	case PriorityNormal:
+	case string(PriorityNormal):
 		score = 3
-	case PriorityLow:
+	case string(PriorityLow):
 		score = 4
 	default:
 		score = 3
@@ -200,7 +200,7 @@ func (h *HandoffAgent) ConsumeHandoffs(ctx context.Context, agentName string, ha
 
 	// Create consumer context
 	consumerCtx, cancel := context.WithCancel(ctx)
-	
+
 	h.consumerMutex.Lock()
 	h.consumers[agentName] = cancel
 	h.consumerMutex.Unlock()
@@ -250,7 +250,7 @@ func (h *HandoffAgent) ConsumeHandoffs(ctx context.Context, agentName string, ha
 			// Process handoff in goroutine
 			go func(id string) {
 				defer func() { <-semaphore }()
-				
+
 				if err := h.processHandoff(consumerCtx, id, handler); err != nil {
 					h.logger.Error().
 						Err(err).
@@ -303,7 +303,7 @@ func (h *HandoffAgent) processHandoff(ctx context.Context, handoffID string, han
 		handoff.Status = StatusCompleted
 		handoff.ErrorMsg = ""
 	}
-	
+
 	// Update average processing time
 	totalCompleted := h.metrics.CompletedHandoffs + h.metrics.FailedHandoffs
 	if totalCompleted > 0 {
@@ -383,9 +383,9 @@ func (h *HandoffAgent) shouldRetry(err error) bool {
 func (h *HandoffAgent) retryHandoff(ctx context.Context, handoff *Handoff, originalErr error) error {
 	handoff.RetryCount++
 	handoff.Status = StatusRetrying
-	
+
 	// Calculate delay with exponential backoff
-	delay := time.Duration(float64(h.retryPolicy.InitialDelay) * 
+	delay := time.Duration(float64(h.retryPolicy.InitialDelay) *
 		float64(handoff.RetryCount) * h.retryPolicy.BackoffFactor)
 	if delay > h.retryPolicy.MaxDelay {
 		delay = h.retryPolicy.MaxDelay
@@ -406,10 +406,10 @@ func (h *HandoffAgent) retryHandoff(ctx context.Context, handoff *Handoff, origi
 	// Schedule retry by re-queuing with delay
 	go func() {
 		time.Sleep(delay)
-		
+
 		cap := h.capabilities[handoff.Metadata.ToAgent]
 		score := float64(time.Now().UnixNano()) / 1e18 // Future timestamp for scheduling
-		
+
 		if err := h.redis.ZAdd(ctx, cap.QueueName, &redis.Z{
 			Score:  score,
 			Member: handoff.Metadata.HandoffID,
@@ -428,16 +428,16 @@ func (h *HandoffAgent) retryHandoff(ctx context.Context, handoff *Handoff, origi
 func (h *HandoffAgent) GetMetrics() HandoffMetrics {
 	h.metricsMutex.RLock()
 	defer h.metricsMutex.RUnlock()
-	
+
 	// Update queue depths
 	metrics := *h.metrics
 	metrics.QueueDepth = 0
-	
+
 	for _, cap := range h.capabilities {
 		depth, _ := h.redis.ZCard(context.Background(), cap.QueueName).Result()
 		metrics.QueueDepth += depth
 	}
-	
+
 	// Update active agents
 	h.consumerMutex.RLock()
 	metrics.ActiveAgents = make([]string, 0, len(h.consumers))
@@ -445,7 +445,7 @@ func (h *HandoffAgent) GetMetrics() HandoffMetrics {
 		metrics.ActiveAgents = append(metrics.ActiveAgents, agent)
 	}
 	h.consumerMutex.RUnlock()
-	
+
 	return metrics
 }
 
@@ -472,7 +472,7 @@ func (h *HandoffAgent) GetHandoffStatus(ctx context.Context, handoffID string) (
 func (h *HandoffAgent) StopConsumer(agentName string) {
 	h.consumerMutex.Lock()
 	defer h.consumerMutex.Unlock()
-	
+
 	if cancel, exists := h.consumers[agentName]; exists {
 		cancel()
 		delete(h.consumers, agentName)

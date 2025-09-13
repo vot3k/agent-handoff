@@ -4,20 +4,20 @@ A Redis-based agent orchestration system that enables sophisticated inter-agent 
 
 ## Overview
 
-The Agent Handoff System consists of two complementary components:
+The Agent Handoff System consists of three main components, each compiled into a distinct binary:
 
-1. **Handoff Library** (`handoff/`) - A sophisticated Redis-based coordination system with intelligent routing, monitoring, and validation
-2. **Agent Manager** (`agent-manager/`) - A lightweight orchestrator that executes agents based on handoff messages
+1.  **`handoff-agent`**: The central server that manages routing, validation, and monitoring.
+2.  **`manager`**: A worker process that listens for tasks and executes agents.
+3.  **`publisher`**: A command-line tool to create and publish new handoffs.
 
-Together, they provide real-time queue management, intelligent routing, schema validation, and comprehensive monitoring for agent-to-agent workflows.
+Together, they provide real-time queue management, intelligent routing, schema validation, and comprehensive monitoring for agent-to-agent workflows across multiple projects.
 
 ## Quick Start
 
 ### Prerequisites
 
 - Go 1.21 or later
-- Redis server
-- Docker and Docker Compose (recommended)
+- Docker and Docker Compose
 
 ### 1. Start Redis
 
@@ -25,27 +25,42 @@ Together, they provide real-time queue management, intelligent routing, schema v
 docker-compose up -d redis
 ```
 
-This starts a Redis container on `localhost:6379` with persistent storage.
+### 2. Build All Binaries
 
-### 2. Run the Agent Manager
-
-```bash
-cd agent-manager
-go run main.go
-```
-
-The Agent Manager will start listening to all configured agent queues and automatically execute agents when handoffs are received.
-
-### 3. Test with a Handoff
-
-In another terminal, publish a test handoff:
+This command compiles `handoff-agent`, `manager`, and `publisher` into the `bin/` directory.
 
 ```bash
-cd agent-manager
-go run test-publisher.go architect-expert api-expert "Design authentication system"
+mkdir -p bin
+(cd handoff && go build -o ../bin/handoff-agent ./cmd/main.go)
+(cd agent-manager && go build -o ../bin/manager ./cmd/manager/main.go && go build -o ../bin/publisher ./cmd/publisher/main.go)
 ```
 
-You should see the Agent Manager pick up the handoff and execute the `api-expert` agent.
+### 3. Run Background Services
+
+From the project root, start the two main services.
+
+```bash
+# Add the tools to your current session's PATH
+export PATH=$PWD/bin:$PATH
+
+# Start the services in the background
+handoff-agent &
+manager &
+```
+
+### 4. Test with a Handoff
+
+Navigate to any directory to simulate working on a different project.
+
+```bash
+# Create a temporary project folder and move into it
+mkdir -p /tmp/my-test-project && cd /tmp/my-test-project
+
+# Publish a handoff from within your project
+publisher architect-expert api-expert "Design a new API"
+```
+
+You should see the `manager` service log that it picked up the task for `my-test-project`.
 
 ## System Architecture
 
@@ -53,11 +68,11 @@ You should see the Agent Manager pick up the handoff and execute the `api-expert
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Publisher     │    │  Handoff Lib    │    │ Agent Manager   │
-│                 │───▶│                 │───▶│                 │
-│ - Agents        │    │ - Validation    │    │ - Queue Monitor │
-│ - External API  │    │ - Routing       │    │ - Agent Exec    │
-│ - CLI Tools     │    │ - Monitoring    │    │ - Archival      │
+│    Publisher    │    │  Handoff Agent  │    │     Manager     │
+│ (CLI Tool)      │───▶│ (Central Server)│───▶│ (Agent Executor)│
+│ - Create Handoff│    │ - Validate      │    │ - Queue Monitor │
+│ - Get Project   │    │ - Route         │    │ - Agent Exec    │
+│ - Send to Redis │    │ - Monitor       │    │ - Archival      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                 │                       │
                                 ▼                       ▼
@@ -80,41 +95,56 @@ You should see the Agent Manager pick up the handoff and execute the `api-expert
 6. **Execution**: Agents are executed via the bridge script
 7. **Archival**: Completed handoffs are archived to filesystem
 
-## Installation
+## Deployment
 
-### Using Docker Compose
+The system now consists of three main binaries that need to be built and run:
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd agent-handoff-system
+- **`handoff-agent`**: The central server that manages routing, validation, and monitoring.
+- **`manager`**: A worker process that listens for tasks and executes agents. You can run multiple workers.
+- **`publisher`**: A command-line tool to create and publish new handoffs.
 
-# Start Redis
-docker-compose up -d
+### 1. Build the Binaries
 
-# Build and run Agent Manager
-cd agent-manager
-go build -o agent-manager main.go
-./agent-manager
-```
-
-### Manual Installation
+A `bin/` directory will be created in the project root to hold the compiled programs.
 
 ```bash
-# Install Redis
-# macOS: brew install redis
-# Ubuntu: apt-get install redis-server
+# Create the bin directory
+mkdir -p bin
 
-# Start Redis
-redis-server
+# Build the handoff-agent server
+(cd handoff && go build -o ../bin/handoff-agent ./cmd/main.go)
 
-# Build components
-cd handoff && go build ./cmd/main.go
-cd ../agent-manager && go build main.go
-
-# Run Agent Manager
-./agent-manager
+# Build the manager and publisher tools
+(cd agent-manager && go build -o ../bin/manager ./cmd/manager/main.go && go build -o ../bin/publisher ./cmd/publisher/main.go)
 ```
+
+### 2. Configure Your Environment
+
+For convenience, add the newly created `bin` directory to your system's PATH. This will allow you to run the `publisher` and other tools from any directory.
+
+```bash
+export PATH=$PWD/bin:$PATH
+```
+
+### 3. Run the System
+
+First, ensure your Redis server is running.
+
+```bash
+docker-compose up -d redis
+```
+
+Next, start the two background services from the root of the `agent-handoff` project:
+
+```bash
+# Start the handoff-agent server in the background
+handoff-agent &
+
+# Start the agent manager worker in the background
+manager &
+```
+
+The system is now running and ready to process handoffs.
 
 ## Configuration
 
@@ -156,16 +186,11 @@ Configuration via JSON file:
 
 ### Publishing Handoffs
 
-Using the test publisher:
+To publish a handoff, use the `publisher` command-line tool from within your project's directory. The tool automatically detects the project name from your current working directory.
 
 ```bash
-cd agent-manager
-go run test-publisher.go <from_agent> <to_agent> [message]
-
-# Examples:
-go run test-publisher.go architect-expert golang-expert "Implement user service"
-go run test-publisher.go api-expert test-expert "Create authentication tests"
-go run test-publisher.go devops-expert security-expert "Security audit needed"
+# Usage: publisher <from_agent> <to_agent> [message]
+publisher architect-expert golang-expert "Implement user service"
 ```
 
 ### Programmatic Handoff Creation
@@ -233,10 +258,10 @@ func publishHandoff(rdb *redis.Client, handoff HandoffPayload) error {
 
 To integrate with the handoff system, agents should:
 
-1. **Listen to their queue**: Monitor `handoff:queue:agent-name`
-2. **Process handoffs**: Implement business logic
-3. **Update status**: Mark handoffs as completed/failed
-4. **Create new handoffs**: Chain to other agents as needed
+1. **Listen to their queue**: The `manager` service monitors project-specific queues (e.g., `handoff:project:my-project:queue:agent-name`).
+2. **Process handoffs**: The `run-agent.sh` script executes the agent's business logic based on the payload.
+3. **Update status**: The agent should report status back (e.g., by creating a subsequent handoff).
+4. **Create new handoffs**: Chain to other agents by using the `publisher` tool or programmatic creation.
 
 Example agent integration:
 
@@ -377,8 +402,12 @@ grep "SUCCESS" agent-manager.log | wc -l
 cd handoff
 go test ./...
 
-# Agent Manager tests  
-cd agent-manager
+# Agent Manager (manager) tests
+cd agent-manager/cmd/manager
+go test ./...
+
+# Publisher tests
+cd ../publisher
 go test ./...
 
 # Integration tests (requires Redis)
@@ -389,33 +418,12 @@ go test -tags=integration ./...
 ### Development Workflow
 
 1. **Start Redis**: `docker-compose up -d redis`
-2. **Run Agent Manager**: `cd agent-manager && go run main.go`
-3. **Test with handoffs**: `go run test-publisher.go agent1 agent2 "test message"`
-4. **Check archives**: `ls agent-manager/archive/$(date +%Y-%m-%d)/`
+2. **Run Handoff Agent**: `handoff-agent &` (from project root after building)
+3. **Run Manager**: `manager &` (from project root after building)
+4. **Test with handoffs**: `publisher agent1 agent2 "test message"` (from any project directory)
+5. **Check archives**: `ls agent-manager/archive/$(date +%Y-%m-%d)/`
 
-### Adding New Agents
 
-1. Add agent queue to `main.go`:
-   ```go
-   queues := []string{
-       // existing agents...
-       "handoff:queue:my-new-agent",
-   }
-   ```
-
-2. Add case to `run-agent.sh`:
-   ```bash
-   "my-new-agent")
-       echo "🤖 My New Agent: Processing..."
-       # Your agent logic here
-       echo "✅ My New Agent: Completed"
-       ;;
-   ```
-
-3. Test the integration:
-   ```bash
-   go run test-publisher.go test-agent my-new-agent "Test message"
-   ```
 
 ## Troubleshooting
 
@@ -469,9 +477,10 @@ bash -n agent-manager/run-agent.sh
 
 ### Debugging Tips
 
-1. **Enable verbose logging** in `main.go`:
-   ```go
-   log.SetLevel(log.DebugLevel)
+1. **Enable verbose logging** in `handoff-agent` or `manager`:
+   ```bash
+   handoff-agent -log-level debug &
+   manager -log-level debug &
    ```
 
 2. **Monitor Redis operations**:
