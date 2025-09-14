@@ -1,0 +1,13 @@
+{
+  "handoff_id": "test-456",
+  "payload": {
+    "metadata": {
+      "from_agent": "user", 
+      "project_name": "agent-handoff",
+      "handoff_id": "test-456"
+    },
+    "content": {
+      "summary": "Design API architecture that needs immediate Go implementation"
+    }
+  }
+}

@@ -45,9 +45,10 @@ CONFIRM: Checksum integrity validation
 
 The handoff system consists of several core components that work together:
 
-- **Handoff Agent**: The main coordination service that manages Redis queues and orchestrates handoffs.
+- **Enhanced Agent Manager**: The main coordination service with built-in agent execution, tool detection, and intelligent routing
 - **Handoff Router**: An intelligent routing system that directs handoffs to the correct agent based on content analysis.
 - **Handoff Validator**: A service that validates handoff payloads against the unified schema.
+- **Execution Strategies**: Multi-strategy agent execution with zero-configuration deployment
 - **Handoff Monitor**: A component that collects metrics and manages alerts for system health.
 
 ## Handoff Schema

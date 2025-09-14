@@ -177,3 +177,41 @@ Versioning, documentation, validation, rate limiting, clear errors, batch operat
 Breaking changes, expose internals, skip validation, ignore standards, poor errors, one-by-one creation
 
 Remember: Design robust, maintainable APIs that serve as reliable contracts between systems.
+
+## Handoff System Integration
+
+When your work requires follow-up by another agent, use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher api-expert target-agent "Summary of work completed" "Detailed context and requirements for the receiving agent"
+```
+
+### Common Handoff Scenarios
+
+- **To golang-expert**: After API design completion
+  ```bash
+  publisher api-expert golang-expert "API specification complete" "OpenAPI/Swagger specification ready with endpoint definitions, data models, and error handling. Ready for Go backend implementation."
+  ```
+
+- **To typescript-expert**: For frontend API integration
+  ```bash
+  publisher api-expert typescript-expert "API contracts ready" "REST API specification complete with TypeScript interfaces and client SDK. Ready for frontend integration and UI implementation."
+  ```
+
+- **To test-expert**: For API testing
+  ```bash
+  publisher api-expert test-expert "API testing needed" "API specification complete with contract definitions. Ready for API testing, contract validation, and integration testing."
+  ```
+
+### Handoff Best Practices
+
+1. **Clear Summary**: Provide a concise summary of work completed
+2. **Detailed Context**: Include specific technical details the receiving agent needs
+3. **Artifacts**: Mention key files created, modified, or reviewed
+4. **Next Steps**: Suggest specific actions for the receiving agent
+5. **Dependencies**: Note any prerequisites, blockers, or integration points
+6. **Quality Gates**: Include any validation or acceptance criteria

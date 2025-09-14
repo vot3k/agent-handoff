@@ -7,10 +7,40 @@ A Redis-based agent orchestration system that enables sophisticated inter-agent 
 The Agent Handoff System consists of three main components, each compiled into a distinct binary:
 
 1.  **`handoff-agent`**: The central server that manages routing, validation, and monitoring.
-2.  **`manager`**: A worker process that listens for tasks and executes agents.
+2.  **`manager`**: A zero-configuration worker process with hybrid execution modes and built-in agent intelligence.
 3.  **`publisher`**: A command-line tool to create and publish new handoffs.
 
-Together, they provide real-time queue management, intelligent routing, schema validation, and comprehensive monitoring for agent-to-agent workflows across multiple projects.
+Together, they provide real-time queue management, intelligent routing, schema validation, and comprehensive monitoring for agent-to-agent workflows across multiple projects with zero setup requirements.
+
+## Execution Modes
+
+The enhanced manager supports three intelligent execution strategies:
+
+### Hybrid Mode (Default)
+```bash
+manager --mode hybrid
+```
+- **Zero Configuration**: Works immediately in any project directory
+- **Smart Tool Detection**: Automatically finds and uses Claude Code, VS Code, Docker, npm, etc.
+- **Intelligent Fallbacks**: Priority-based selection (claude-code > cursor > vscode > generic)
+- **Project Awareness**: Detects Go, Node.js, Python, Rust projects automatically
+
+### Built-in Agent Mode
+```bash
+manager --mode executor --agent project-manager --payload-file task.json
+```
+- **Native Intelligence**: Go-based implementations with real analysis capabilities
+- **Available Agents**: project-manager, architect-expert, agent-manager
+- **No External Dependencies**: Pure Go implementations with comprehensive logic
+- **Performance**: Sub-millisecond operation performance
+
+### Legacy Dispatcher Mode
+```bash
+manager --mode dispatcher
+```
+- **Backward Compatibility**: Maintains compatibility with existing `run-agent.sh` workflows
+- **Script Integration**: Uses traditional script-based execution when needed
+- **Migration Support**: Smooth transition path for existing deployments
 
 ## Quick Start
 
@@ -34,6 +64,8 @@ mkdir -p bin
 (cd handoff && go build -o ../bin/handoff-agent ./cmd/main.go)
 (cd agent-manager && go build -o ../bin/manager ./cmd/manager/main.go && go build -o ../bin/publisher ./cmd/publisher/main.go)
 ```
+
+**🎯 Zero Configuration**: The enhanced manager binary now provides zero-configuration execution with intelligent tool detection and built-in agents. No project-specific setup required!
 
 ### 3. Run Background Services
 
@@ -67,22 +99,70 @@ You should see the `manager` service log that it picked up the task for `my-test
 ### Components Overview
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│    Publisher    │    │  Handoff Agent  │    │     Manager     │
-│ (CLI Tool)      │───▶│ (Central Server)│───▶│ (Agent Executor)│
-│ - Create Handoff│    │ - Validate      │    │ - Queue Monitor │
-│ - Get Project   │    │ - Route         │    │ - Agent Exec    │
-│ - Send to Redis │    │ - Monitor       │    │ - Archival      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│    Publisher    │    │  Handoff Agent  │    │ Enhanced Manager │
+│ (CLI Tool)      │───▶│ (Central Server)│───▶│ (Hybrid Modes)   │
+│ - Create Handoff│    │ - Validate      │    │ - Queue Monitor  │
+│ - Auto Project  │    │ - Route         │    │ - Tool Detection │
+│ - Send to Redis │    │ - Monitor       │    │ - Built-in Agents│
+└─────────────────┘    └─────────────────┘    └──────────────────┘
                                 │                       │
                                 ▼                       ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │     Redis       │    │   run-agent.sh  │
-                       │                 │    │                 │
-                       │ - Message Queue │    │ - Bridge Script │
-                       │ - Metadata      │    │ - Agent Wrapper │
-                       │ - Monitoring    │    │ - Error Handling│
-                       └─────────────────┘    └─────────────────┘
+                       ┌─────────────────┐    ┌──────────────────┐
+                       │     Redis       │    │ Smart Execution  │
+                       │                 │    │                  │
+                       │ - Message Queue │    │ - AI Tool Support│
+                       │ - Metadata      │    │ - Native Agents  │
+                       │ - Monitoring    │    │ - Zero Config    │
+                       └─────────────────┘    └──────────────────┘
+```
+
+### Data Flow Diagram
+
+```mermaid
+graph TD
+    A[Claude Code Sub-Agent] -->|Task Completion| B[Handoff Detection]
+    B -->|Create Handoff| C[Publisher CLI]
+    C -->|Validate & Route| D[Handoff Agent]
+    D -->|LPUSH| E[Redis Queue]
+
+    E -->|BRPOP| F[Manager Process]
+    F -->|Smart Execution| G[Hybrid Dispatcher]
+    G -->|AI Tools/Built-in| H[Target Sub-Agent]
+    H -->|Process Task| I[Agent Execution]
+
+    I -->|Success| J[Archive Handoff]
+    I -->|Create New Handoff| K[Next Agent Chain]
+    K -->|Loop| E
+
+    J -->|JSON Storage| L[File System Archive]
+
+    subgraph "Redis Queues"
+        E1[handoff:project:my-project:queue:golang-expert]
+        E2[handoff:project:my-project:queue:api-expert]
+        E3[handoff:project:my-project:queue:test-expert]
+        E --> E1
+        E --> E2
+        E --> E3
+    end
+
+    subgraph "Claude Code Integration"
+        A1[architect-expert] --> A
+        A2[golang-expert] --> A
+        A3[api-expert] --> A
+        A4[test-expert] --> A
+    end
+
+    subgraph "Monitoring & Health"
+        M1[Queue Metrics] --> E
+        M2[Agent Health] --> F
+        M3[Processing Time] --> I
+    end
+
+    style A fill:#e1f5fe
+    style E fill:#f3e5f5
+    style H fill:#e8f5e8
+    style L fill:#fff3e0
 ```
 
 ### Data Flow
@@ -95,13 +175,47 @@ You should see the `manager` service log that it picked up the task for `my-test
 6. **Execution**: Agents are executed via the bridge script
 7. **Archival**: Completed handoffs are archived to filesystem
 
+### Claude Code Integration
+
+The agent handoff system seamlessly integrates with Claude Code's sub-agent architecture:
+
+#### **Publishing Handoffs**
+Claude Code sub-agents publish handoffs through multiple mechanisms:
+
+```bash
+# 1. CLI Publisher (from within projects)
+publisher architect-expert golang-expert "Optimize the Redis connection pooling"
+
+# 2. Task Tool Integration (automatic)
+# When sub-agents complete tasks, they can automatically create handoffs
+# to continue workflows across agent boundaries
+```
+
+#### **Queue Structure**
+Each project gets isolated Redis queues:
+```
+handoff:project:{project_name}:queue:{agent_name}
+handoff:project:my-app:queue:golang-expert
+handoff:project:my-app:queue:api-expert
+handoff:project:my-app:queue:test-expert
+```
+
+#### **Agent Orchestration Flow**
+1. **architect-expert** → Designs system architecture
+2. **golang-expert** → Implements backend code
+3. **api-expert** → Creates API specifications
+4. **test-expert** → Validates implementations
+5. **devops-expert** → Handles deployment
+
+Each agent automatically hands off to the next appropriate agent based on the workflow requirements.
+
 ## Deployment
 
 The system now consists of three main binaries that need to be built and run:
 
 - **`handoff-agent`**: The central server that manages routing, validation, and monitoring.
-- **`manager`**: A worker process that listens for tasks and executes agents. You can run multiple workers.
-- **`publisher`**: A command-line tool to create and publish new handoffs.
+- **`manager`**: An enhanced worker process with hybrid execution modes, zero-configuration setup, and built-in agent intelligence. You can run multiple workers.
+- **`publisher`**: A command-line tool to create and publish new handoffs with automatic project detection.
 
 ### 1. Build the Binaries
 
@@ -144,7 +258,28 @@ handoff-agent &
 manager &
 ```
 
-The system is now running and ready to process handoffs.
+The system is now running and ready to process handoffs with zero configuration required!
+
+### 4. Enhanced Execution Modes
+
+The manager now supports multiple execution strategies:
+
+```bash
+# Hybrid mode (default) - Automatic tool detection and intelligent execution
+manager --mode hybrid
+
+# Direct agent execution - Built-in agents with native Go implementations
+manager --mode executor --agent project-manager --payload-file task.json
+
+# Traditional dispatcher mode - Compatible with existing workflows
+manager --mode dispatcher
+```
+
+**Key Benefits:**
+- ✅ **Zero Setup**: Works immediately in any project directory
+- ✅ **Tool Detection**: Automatically finds Claude Code, VS Code, Go, npm, Docker, etc.
+- ✅ **Smart Fallbacks**: Uses best available tool with intelligent priority selection
+- ✅ **Built-in Intelligence**: Native agent implementations with real analysis capabilities
 
 ## Configuration
 
@@ -229,24 +364,24 @@ type HandoffPayload struct {
 
 func publishHandoff(rdb *redis.Client, handoff HandoffPayload) error {
     ctx := context.Background()
-    
+
     // Serialize handoff
     payload, err := json.Marshal(handoff)
     if err != nil {
         return err
     }
-    
+
     // Store in Redis with TTL
     handoffKey := fmt.Sprintf("handoff:%s", handoff.Metadata.HandoffID)
     err = rdb.Set(ctx, handoffKey, payload, 24*time.Hour).Err()
     if err != nil {
         return err
     }
-    
+
     // Add to priority queue for a specific project
     queueName := fmt.Sprintf("handoff:project:%s:queue:%s", handoff.Metadata.ProjectName, handoff.Metadata.ToAgent)
     score := 3.0 + float64(time.Now().UnixNano())/1e18 // Priority + timestamp
-    
+
     return rdb.ZAdd(ctx, queueName, &redis.Z{
         Score:  score,
         Member: handoff.Metadata.HandoffID,
@@ -259,7 +394,10 @@ func publishHandoff(rdb *redis.Client, handoff HandoffPayload) error {
 To integrate with the handoff system, agents should:
 
 1. **Listen to their queue**: The `manager` service monitors project-specific queues (e.g., `handoff:project:my-project:queue:agent-name`).
-2. **Process handoffs**: The `run-agent.sh` script executes the agent's business logic based on the payload.
+2. **Process handoffs**: The enhanced manager uses intelligent execution strategies:
+   - **Tool Detection**: Automatically uses Claude Code, VS Code, or other available AI tools
+   - **Built-in Agents**: Native Go implementations for core agents (project-manager, architect-expert, etc.)
+   - **Script Fallback**: Compatible with existing `run-agent.sh` workflows when needed
 3. **Update status**: The agent should report status back (e.g., by creating a subsequent handoff).
 4. **Create new handoffs**: Chain to other agents by using the `publisher` tool or programmatic creation.
 
@@ -277,7 +415,7 @@ echo "Processing handoff $HANDOFF_ID..."
 
 # Your agent logic here
 # - Parse requirements
-# - Execute tasks  
+# - Execute tasks
 # - Generate artifacts
 # - Create output
 
@@ -294,7 +432,7 @@ exit 0
 metadata:
   project_name: string       # Name of the project context
   from_agent: string          # Source agent identifier
-  to_agent: string            # Target agent identifier  
+  to_agent: string            # Target agent identifier
   timestamp: datetime         # ISO8601 timestamp
   task_context: string        # Brief task description
   priority: enum              # low|normal|high|critical
@@ -419,9 +557,15 @@ go test -tags=integration ./...
 
 1. **Start Redis**: `docker-compose up -d redis`
 2. **Run Handoff Agent**: `handoff-agent &` (from project root after building)
-3. **Run Manager**: `manager &` (from project root after building)
-4. **Test with handoffs**: `publisher agent1 agent2 "test message"` (from any project directory)
+3. **Run Enhanced Manager**: `manager &` (hybrid mode with zero configuration)
+4. **Test with handoffs**: `publisher agent1 agent2 "test message"` (works from any project directory)
 5. **Check archives**: `ls agent-manager/archive/$(date +%Y-%m-%d)/`
+
+**Zero Configuration Benefits:**
+- No need to copy `run-agent.sh` to every project
+- Automatic tool detection (Claude Code, VS Code, etc.)
+- Built-in agent intelligence for core workflows
+- Intelligent fallback strategies for maximum compatibility
 
 
 
@@ -466,14 +610,17 @@ redis-cli GET handoff:12345abc-def
 redis-cli DEL handoff:project:my-project:queue:problematic-agent
 ```
 
-**run-agent.sh Permissions**
+**Legacy Script Support** (Optional)
 ```bash
-# Make script executable
+# For backward compatibility, run-agent.sh is still supported
+# Make script executable if using legacy mode
 chmod +x agent-manager/run-agent.sh
 
 # Check script syntax
 bash -n agent-manager/run-agent.sh
 ```
+
+**Note**: The enhanced manager provides built-in execution capabilities, making `run-agent.sh` optional for most workflows.
 
 ### Debugging Tips
 
@@ -493,8 +640,12 @@ bash -n agent-manager/run-agent.sh
    echo "$PAYLOAD" | jq .
    ```
 
-4. **Check agent execution manually**:
+4. **Test agent execution**:
    ```bash
+   # Test built-in agent execution (recommended)
+   manager --mode executor --agent project-manager --payload-file test-handoff.json
+
+   # Test legacy script execution (optional)
    cd agent-manager
    ./run-agent.sh test-expert '{"metadata":{"handoff_id":"test"}}'
    ```
@@ -523,7 +674,7 @@ bash -n agent-manager/run-agent.sh
 Handoffs support four priority levels:
 
 - **Critical** (score: 1.x): Immediate processing
-- **High** (score: 2.x): Expedited processing  
+- **High** (score: 2.x): Expedited processing
 - **Normal** (score: 3.x): Standard processing
 - **Low** (score: 4.x): Background processing
 

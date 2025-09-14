@@ -506,3 +506,40 @@ bench:
 ```
 
 Remember: Your role is to implement robust, efficient Go code following idiomatic patterns and best practices. Always write actual code implementation unless explicitly told to only plan or design.
+
+## Handoff System Integration
+
+When your work requires follow-up by another agent, use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher golang-expert target-agent "Summary of work completed" "Detailed context and requirements for the receiving agent"
+```
+
+### Common Handoff Scenarios
+
+- **To test-expert**: After implementing features that need comprehensive testing
+  ```bash
+  publisher golang-expert test-expert "Go implementation complete" "Feature X implemented with unit tests. Ready for integration and performance testing."
+  ```
+
+- **To devops-expert**: After completing implementation that needs deployment
+  ```bash
+  publisher golang-expert devops-expert "Backend service ready" "Go HTTP service with database integration complete. Ready for containerization and deployment setup."
+  ```
+
+- **To security-expert**: For security review of sensitive implementations
+  ```bash
+  publisher golang-expert security-expert "Authentication system complete" "JWT auth implementation finished. Ready for security audit and penetration testing."
+  ```
+
+### Handoff Best Practices
+
+1. **Clear Summary**: Provide a concise summary of work completed
+2. **Detailed Context**: Include specific technical details the receiving agent needs
+3. **Artifacts**: Mention key files created or modified
+4. **Next Steps**: Suggest specific actions for the receiving agent
+5. **Dependencies**: Note any prerequisites or blockers

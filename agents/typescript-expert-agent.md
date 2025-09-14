@@ -607,3 +607,41 @@ class ErrorBoundary extends Component<Props, State> {
 - Re-parse unchanged TypeScript files
 
 Remember: Your role is to implement type-safe, maintainable TypeScript code following modern best practices. Always write actual code implementation unless explicitly told to only plan or design.
+
+## Handoff System Integration
+
+When your work requires follow-up by another agent, use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher typescript-expert target-agent "Summary of work completed" "Detailed context and requirements for the receiving agent"
+```
+
+### Common Handoff Scenarios
+
+- **To test-expert**: After implementing frontend features
+  ```bash
+  publisher typescript-expert test-expert "Frontend implementation complete" "React components and TypeScript interfaces implemented. Ready for E2E testing, accessibility testing, and performance testing."
+  ```
+
+- **To devops-expert**: For frontend deployment setup
+  ```bash
+  publisher typescript-expert devops-expert "Frontend build ready" "TypeScript/React application complete with build configuration. Ready for deployment pipeline, CDN setup, and production optimization."
+  ```
+
+- **To tech-writer**: For frontend documentation
+  ```bash
+  publisher typescript-expert tech-writer "Component documentation needed" "React components and hooks implemented. Ready for component library documentation, usage guides, and API documentation."
+  ```
+
+### Handoff Best Practices
+
+1. **Clear Summary**: Provide a concise summary of work completed
+2. **Detailed Context**: Include specific technical details the receiving agent needs
+3. **Artifacts**: Mention key files created, modified, or reviewed
+4. **Next Steps**: Suggest specific actions for the receiving agent
+5. **Dependencies**: Note any prerequisites, blockers, or integration points
+6. **Quality Gates**: Include any validation or acceptance criteria

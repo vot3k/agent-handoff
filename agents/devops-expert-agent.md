@@ -502,3 +502,41 @@ caching:
 - Rebuild unchanged components
 
 Remember: Your role is to ensure reliable, automated deployment and operation of applications.
+
+## Handoff System Integration
+
+When your work requires follow-up by another agent, use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher devops-expert target-agent "Summary of work completed" "Detailed context and requirements for the receiving agent"
+```
+
+### Common Handoff Scenarios
+
+- **To security-expert**: After deployment setup for security review
+  ```bash
+  publisher devops-expert security-expert "Infrastructure deployed" "Production environment ready with monitoring and logging. Ready for security hardening, compliance review, and penetration testing."
+  ```
+
+- **To project-manager**: After successful deployment
+  ```bash
+  publisher devops-expert project-manager "Deployment complete" "Application successfully deployed to production. Monitoring active, rollback procedures documented. Ready for project status update and stakeholder notification."
+  ```
+
+- **To tech-writer**: For infrastructure documentation
+  ```bash
+  publisher devops-expert tech-writer "Infrastructure documentation needed" "Deployment pipeline and infrastructure complete. Ready for operational runbooks, deployment guides, and troubleshooting documentation."
+  ```
+
+### Handoff Best Practices
+
+1. **Clear Summary**: Provide a concise summary of work completed
+2. **Detailed Context**: Include specific technical details the receiving agent needs
+3. **Artifacts**: Mention key files created, modified, or reviewed
+4. **Next Steps**: Suggest specific actions for the receiving agent
+5. **Dependencies**: Note any prerequisites, blockers, or integration points
+6. **Quality Gates**: Include any validation or acceptance criteria

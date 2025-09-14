@@ -1,0 +1,181 @@
+{
+  "workflow_id": "jwt-authentication-workflow",
+  "name": "JWT Authentication System Implementation",
+  "status": "active",
+  "current_stage": "Architecture & Security Design",
+  "started_at": "2025-01-15T10:00:00Z",
+  "estimated_completion": "2025-02-05T17:00:00Z",
+  
+  "stages": {
+    "Architecture & Security Design": {
+      "status": "in_progress",
+      "started_at": "2025-01-15T10:00:00Z",
+      "parallel_execution": true,
+      "agents": {
+        "architect-expert": {
+          "status": "assigned",
+          "handoff_id": "jwt-auth-001-architecture",
+          "assigned_at": "2025-01-15T10:00:00Z",
+          "estimated_completion": "2025-01-15T12:00:00Z",
+          "deliverables_status": {
+            "system_architecture": "pending",
+            "component_design": "pending", 
+            "security_patterns": "pending",
+            "database_schema": "pending"
+          }
+        },
+        "security-expert": {
+          "status": "assigned",
+          "handoff_id": "jwt-auth-002-security", 
+          "assigned_at": "2025-01-15T10:00:00Z",
+          "estimated_completion": "2025-01-15T12:00:00Z",
+          "deliverables_status": {
+            "jwt_security_specs": "pending",
+            "threat_analysis": "pending",
+            "security_best_practices": "pending",
+            "token_lifecycle": "pending"
+          }
+        }
+      }
+    },
+    
+    "API Contract Design": {
+      "status": "waiting",
+      "dependencies": ["Architecture & Security Design"],
+      "agents": {
+        "api-expert": {
+          "status": "queued",
+          "estimated_start": "2025-01-15T12:30:00Z",
+          "estimated_completion": "2025-01-15T13:30:00Z"
+        }
+      }
+    },
+    
+    "Project Planning": {
+      "status": "waiting", 
+      "dependencies": ["API Contract Design"],
+      "agents": {
+        "project-manager": {
+          "status": "queued",
+          "estimated_start": "2025-01-15T14:00:00Z",
+          "estimated_completion": "2025-01-15T14:30:00Z"
+        }
+      }
+    },
+    
+    "Core Implementation": {
+      "status": "waiting",
+      "dependencies": ["Project Planning"],
+      "parallel_execution": true,
+      "agents": {
+        "golang-expert": {
+          "status": "queued",
+          "estimated_start": "2025-01-15T15:00:00Z",
+          "estimated_completion": "2025-01-22T17:00:00Z"
+        },
+        "test-expert": {
+          "status": "queued", 
+          "estimated_start": "2025-01-15T15:00:00Z",
+          "estimated_completion": "2025-01-22T17:00:00Z"
+        }
+      }
+    },
+    
+    "Infrastructure & Deployment": {
+      "status": "waiting",
+      "dependencies": ["Core Implementation"],
+      "agents": {
+        "devops-expert": {
+          "status": "queued",
+          "estimated_start": "2025-01-23T09:00:00Z", 
+          "estimated_completion": "2025-01-25T17:00:00Z"
+        }
+      }
+    },
+    
+    "Documentation & Guides": {
+      "status": "waiting",
+      "dependencies": ["Infrastructure & Deployment"],
+      "agents": {
+        "tech-writer": {
+          "status": "queued",
+          "estimated_start": "2025-01-26T09:00:00Z",
+          "estimated_completion": "2025-01-27T17:00:00Z"
+        }
+      }
+    }
+  },
+  
+  "handoffs": {
+    "completed": [],
+    "active": [
+      {
+        "handoff_id": "jwt-auth-001-architecture",
+        "from": "agent-manager",
+        "to": "architect-expert", 
+        "status": "pending",
+        "created_at": "2025-01-15T10:00:00Z"
+      },
+      {
+        "handoff_id": "jwt-auth-002-security",
+        "from": "agent-manager", 
+        "to": "security-expert",
+        "status": "pending",
+        "created_at": "2025-01-15T10:00:00Z"
+      }
+    ],
+    "scheduled": [
+      {
+        "from": "architect-expert + security-expert",
+        "to": "api-expert",
+        "trigger": "both_architecture_and_security_complete",
+        "estimated_time": "2025-01-15T12:30:00Z"
+      }
+    ]
+  },
+  
+  "validation_gates": {
+    "security_review": {
+      "stage": "After Core Implementation",
+      "status": "pending",
+      "criteria": [
+        "Security expert approval required",
+        "Vulnerability scan passed", 
+        "JWT implementation reviewed"
+      ]
+    },
+    "testing_gate": {
+      "stage": "Before Deployment",
+      "status": "pending", 
+      "criteria": [
+        "Test coverage >90%",
+        "All integration tests passing",
+        "Performance benchmarks met"
+      ]
+    },
+    "documentation_gate": {
+      "stage": "Before Release",
+      "status": "pending",
+      "criteria": [
+        "API documentation complete",
+        "Installation guide validated", 
+        "Security guide reviewed"
+      ]
+    }
+  },
+  
+  "metrics": {
+    "total_agents_involved": 7,
+    "parallel_stages": 3,
+    "estimated_effort": "2-3 weeks",
+    "complexity_score": "high",
+    "critical_path": [
+      "Architecture & Security Design",
+      "API Contract Design", 
+      "Project Planning",
+      "Core Implementation",
+      "Infrastructure & Deployment",
+      "Documentation & Guides"
+    ]
+  }
+}

@@ -1,0 +1,233 @@
+name: "JWT Authentication System Implementation"
+description: "Complete JWT authentication system with Go backend, comprehensive testing, and deployment infrastructure"
+version: "1.0"
+created_at: "2025-01-15T10:00:00Z"
+
+metadata:
+  complexity: high
+  estimated_duration: "2-3 weeks"
+  required_agents: 7
+  parallel_stages: 3
+
+stages:
+  - name: "Architecture & Security Design"
+    description: "Design system architecture and security requirements"
+    parallel: true
+    timeout: "2 hours"
+    agents:
+      - name: "architect-expert"
+        task: "Design JWT authentication system architecture"
+        deliverables:
+          - "System architecture diagram"
+          - "Component interaction design"
+          - "Security architecture patterns"
+          - "Database schema design"
+        requirements:
+          - "Scalable architecture supporting 10k+ users"
+          - "Microservices-ready design"
+          - "Database agnostic approach"
+          - "Clean architecture principles"
+      
+      - name: "security-expert" 
+        task: "Define JWT security requirements and threat model"
+        deliverables:
+          - "JWT security specifications"
+          - "Threat analysis report"
+          - "Security best practices guide"
+          - "Token lifecycle management"
+        requirements:
+          - "OWASP compliance"
+          - "JWT best practices implementation"
+          - "Secure token storage guidelines"
+          - "Rate limiting strategies"
+
+  - name: "API Contract Design"
+    description: "Design authentication API contracts and endpoints"
+    requires: ["Architecture & Security Design"]
+    timeout: "1 hour"
+    agents:
+      - name: "api-expert"
+        task: "Design authentication API contracts"
+        deliverables:
+          - "OpenAPI/Swagger specifications"
+          - "Authentication endpoint definitions"
+          - "Error handling specifications"
+          - "API versioning strategy"
+        requirements:
+          - "RESTful API design"
+          - "Comprehensive error responses"
+          - "Clear authentication flows"
+          - "API documentation standards"
+
+  - name: "Project Planning"
+    description: "Break down implementation into manageable tasks"
+    requires: ["API Contract Design"]
+    timeout: "30 minutes"
+    agents:
+      - name: "project-manager"
+        task: "Create implementation roadmap and task breakdown"
+        deliverables:
+          - "Sprint planning breakdown"
+          - "Task dependencies mapping"
+          - "Timeline estimates"
+          - "Resource allocation plan"
+        requirements:
+          - "2-week sprint cycles"
+          - "Clear milestone definitions"
+          - "Risk assessment"
+          - "Quality gates definition"
+
+  - name: "Core Implementation"
+    description: "Implement Go backend and comprehensive testing"
+    requires: ["Project Planning"]
+    parallel: true
+    timeout: "1 week"
+    agents:
+      - name: "golang-expert"
+        task: "Implement JWT authentication backend service"
+        deliverables:
+          - "JWT middleware implementation"
+          - "User authentication service"
+          - "Token generation and validation"
+          - "Database integration layer"
+          - "Password hashing and security"
+        requirements:
+          - "Go 1.21+ implementation"
+          - "Gin or Echo web framework"
+          - "JWT library integration"
+          - "Database ORM integration"
+          - "Environment configuration"
+          - "Logging and monitoring"
+      
+      - name: "test-expert"
+        task: "Create comprehensive test suite"
+        deliverables:
+          - "Unit test coverage (>90%)"
+          - "Integration test suite"
+          - "Security test scenarios"
+          - "Performance test benchmarks"
+          - "Test automation setup"
+        requirements:
+          - "Go testing framework"
+          - "Mocking strategies"
+          - "Test database setup"
+          - "CI/CD test integration"
+          - "Security vulnerability testing"
+
+  - name: "Infrastructure & Deployment"
+    description: "Set up deployment infrastructure and CI/CD"
+    requires: ["Core Implementation"]
+    timeout: "3 days"
+    agents:
+      - name: "devops-expert"
+        task: "Create deployment infrastructure and automation"
+        deliverables:
+          - "Docker containerization"
+          - "Kubernetes deployment manifests"
+          - "CI/CD pipeline configuration"
+          - "Environment management"
+          - "Monitoring and logging setup"
+        requirements:
+          - "Docker multi-stage builds"
+          - "Health check endpoints"
+          - "Secret management"
+          - "Database migration strategy"
+          - "Load balancing configuration"
+
+  - name: "Documentation & Guides"
+    description: "Create comprehensive documentation"
+    requires: ["Infrastructure & Deployment"]
+    timeout: "2 days"
+    agents:
+      - name: "tech-writer"
+        task: "Create implementation guides and API documentation"
+        deliverables:
+          - "API documentation"
+          - "Installation and setup guides"
+          - "Configuration reference"
+          - "Security implementation guide"
+          - "Troubleshooting documentation"
+        requirements:
+          - "Clear step-by-step guides"
+          - "Code examples and snippets"
+          - "Architecture diagrams"
+          - "Best practices documentation"
+
+validation_rules:
+  - name: "Security Review Gate"
+    stage: "After Core Implementation"
+    criteria:
+      - "Security expert approval required"
+      - "Vulnerability scan passed"
+      - "JWT implementation reviewed"
+  
+  - name: "Testing Gate"
+    stage: "Before Deployment"
+    criteria:
+      - "Test coverage >90%"
+      - "All integration tests passing"
+      - "Performance benchmarks met"
+  
+  - name: "Documentation Gate"
+    stage: "Before Release"
+    criteria:
+      - "API documentation complete"
+      - "Installation guide validated"
+      - "Security guide reviewed"
+
+handoff_protocols:
+  - from: "architect-expert"
+    to: "api-expert"
+    required_artifacts:
+      - "system_architecture"
+      - "component_design" 
+      - "security_patterns"
+  
+  - from: "security-expert"
+    to: "api-expert"
+    required_artifacts:
+      - "jwt_security_specs"
+      - "threat_analysis"
+      - "security_requirements"
+  
+  - from: "api-expert"
+    to: "golang-expert"
+    required_artifacts:
+      - "openapi_specification"
+      - "endpoint_definitions"
+      - "error_specifications"
+  
+  - from: "golang-expert"
+    to: "test-expert"
+    required_artifacts:
+      - "implementation_code"
+      - "api_endpoints"
+      - "test_interfaces"
+  
+  - from: "test-expert"
+    to: "devops-expert"
+    required_artifacts:
+      - "test_results"
+      - "performance_benchmarks"
+      - "deployment_requirements"
+
+monitoring:
+  metrics:
+    - "stage_completion_time"
+    - "handoff_success_rate"
+    - "artifact_quality_score"
+    - "security_gate_pass_rate"
+  
+  alerts:
+    - "stage_timeout_exceeded"
+    - "handoff_validation_failed"
+    - "security_gate_failed"
+    - "test_coverage_below_threshold"
+
+success_criteria:
+  - "All validation gates passed"
+  - "Security expert sign-off obtained"
+  - "Test coverage >90% achieved"
+  - "Performance benchmarks met"
+  - "Documentation complete and reviewed"
+  - "Successful deployment to staging environment"

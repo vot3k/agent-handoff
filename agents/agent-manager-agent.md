@@ -119,9 +119,13 @@ workflow_registry:
 
 ## Knowledge Sharing Protocol
 
-Inter-agent communication is managed by a Redis-based handoff system. Instead of creating markdown files, agents construct a JSON payload conforming to the **Unified Handoff Schema** and publish it to a specific agent's queue in Redis.
+Inter-agent communication is managed by a Redis-based handoff system with **built-in agent execution**. Instead of creating markdown files, agents construct a JSON payload conforming to the **Unified Handoff Schema** and publish it to a specific agent's queue in Redis.
 
-The `agent-manager` listens on these queues, and upon receiving a message, it dispatches the task to the appropriate agent.
+The enhanced `agent-manager` provides multiple execution modes:
+- **Built-in Agent Execution**: Native Go implementations with tool-agnostic strategies
+- **Tool Detection**: Automatic detection and use of Claude Code, Cursor, VS Code, and development tools
+- **Script Fallback**: Compatible with existing run-agent.sh workflows
+- **Zero Configuration**: No project setup required - works anywhere immediately
 
 ### Handoff Message Format
 A handoff is a JSON object with the following structure, which is pushed to a Redis queue for the target agent.
@@ -152,6 +156,39 @@ A handoff is a JSON object with the following structure, which is pushed to a Re
   "updated_at": "datetime"
 }
 ```
+
+### Enhanced Execution Modes
+
+The agent-manager now supports multiple execution modes for optimal flexibility:
+
+#### 1. Built-in Agent Execution (`--mode executor`)
+```bash
+# Direct agent execution with built-in intelligence
+./agent-manager --mode executor --agent project-manager --payload-file task.json
+```
+- Native Go implementations for core agents (project-manager, architecture-analyzer)
+- Real project analysis and intelligent recommendations
+- No external dependencies required
+
+#### 2. Tool Detection Strategy (Default)
+- Automatic detection of available development tools
+- Priority-based selection: `claude-code > cursor > vscode > language-tools`
+- Project-aware execution with proper working directories
+- Smart fallbacks when primary tools unavailable
+
+#### 3. Script Fallback Strategy
+- Maintains compatibility with existing `run-agent.sh` scripts
+- Automatic discovery of project-specific or global scripts  
+- Seamless migration path from legacy workflows
+
+#### 4. Hybrid Mode (`--mode hybrid`)
+```bash
+# Best of all strategies with intelligent selection
+./agent-manager --mode hybrid
+```
+- Combines all execution strategies with smart routing
+- Zero configuration required for any project
+- Automatic tool detection and fallback handling
 
 ## Agent Types and Responsibilities
 

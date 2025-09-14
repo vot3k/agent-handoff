@@ -1,0 +1,43 @@
+# Claude Code Handoff Configuration Template
+# Copy this to .claude/handoff-config.yaml in your project root
+
+redis:
+  address: "localhost:6379"
+  password: ""  # Leave empty if no password
+  database: 0
+  project_namespace: "agent-handoff"  # Change to your project name
+
+agents:
+  - name: "architect-expert"
+    queue: "handoff:project:agent-handoff:queue:architect-expert" 
+    can_handoff_to: ["golang-expert", "api-expert", "typescript-expert"]
+  
+  - name: "golang-expert"
+    queue: "handoff:project:agent-handoff:queue:golang-expert"
+    can_handoff_to: ["test-expert", "devops-expert", "security-expert"]
+  
+  - name: "api-expert"
+    queue: "handoff:project:agent-handoff:queue:api-expert"
+    can_handoff_to: ["golang-expert", "typescript-expert", "test-expert"]
+  
+  - name: "typescript-expert"
+    queue: "handoff:project:agent-handoff:queue:typescript-expert"
+    can_handoff_to: ["test-expert", "devops-expert"]
+  
+  - name: "test-expert"
+    queue: "handoff:project:agent-handoff:queue:test-expert"
+    can_handoff_to: ["devops-expert", "security-expert"]
+  
+  - name: "devops-expert"
+    queue: "handoff:project:agent-handoff:queue:devops-expert"
+    can_handoff_to: ["security-expert", "test-expert"]
+  
+  - name: "security-expert"
+    queue: "handoff:project:agent-handoff:queue:security-expert"
+    can_handoff_to: ["test-expert", "devops-expert"]
+
+# Environment variables that will be set automatically
+environment:
+  HANDOFF_REDIS_ADDR: "localhost:6379"
+  HANDOFF_PROJECT_NAME: "agent-handoff"
+  HANDOFF_ENABLED: "true"
