@@ -8,6 +8,8 @@ import (
 	"agent-manager/internal/config"
 	"agent-manager/internal/models"
 	"agent-manager/internal/repository"
+
+	"github.com/google/uuid"
 )
 
 // HandoffService provides business logic for handoff operations
@@ -91,8 +93,22 @@ func (s *HandoffService) ListHandoffs(ctx context.Context, projectName string, p
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20 // Default page size
+
+	// Use configurable page size from config, with defaults if not set
+	defaultPageSize := 20
+	maxPageSize := 100
+
+	if s.config != nil {
+		if s.config.Pagination.DefaultPageSize > 0 {
+			defaultPageSize = s.config.Pagination.DefaultPageSize
+		}
+		if s.config.Pagination.MaxPageSize > 0 {
+			maxPageSize = s.config.Pagination.MaxPageSize
+		}
+	}
+
+	if pageSize < 1 || pageSize > maxPageSize {
+		pageSize = defaultPageSize
 	}
 
 	response, err := s.repo.List(ctx, projectName, page, pageSize)
@@ -199,9 +215,9 @@ func (s *HandoffService) CancelHandoff(ctx context.Context, handoffID string) er
 
 // Private helper methods
 
-// generateHandoffID generates a unique handoff ID
+// generateHandoffID generates a unique handoff ID using UUID
 func (s *HandoffService) generateHandoffID() string {
-	return fmt.Sprintf("handoff-%d", time.Now().UnixNano())
+	return uuid.New().String()
 }
 
 // validateStatusTransition validates that a status transition is allowed

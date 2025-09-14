@@ -9,9 +9,10 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server ServerConfig `json:"server"`
-	Redis  RedisConfig  `json:"redis"`
-	Env    string       `json:"env"`
+	Server     ServerConfig     `json:"server"`
+	Redis      RedisConfig      `json:"redis"`
+	Env        string           `json:"env"`
+	Pagination PaginationConfig `json:"pagination"`
 }
 
 // ServerConfig holds HTTP server configuration
@@ -29,6 +30,12 @@ type RedisConfig struct {
 	DB       int    `json:"db"`
 }
 
+// PaginationConfig holds pagination configuration
+type PaginationConfig struct {
+	DefaultPageSize int `json:"default_page_size"`
+	MaxPageSize     int `json:"max_page_size"`
+}
+
 // Load reads configuration from environment variables with sensible defaults
 func Load() (*Config, error) {
 	cfg := &Config{
@@ -44,6 +51,10 @@ func Load() (*Config, error) {
 			DB:       getIntEnv("REDIS_DB", 0),
 		},
 		Env: getEnv("ENV", "development"),
+		Pagination: PaginationConfig{
+			DefaultPageSize: getIntEnv("PAGINATION_DEFAULT_PAGE_SIZE", 20),
+			MaxPageSize:     getIntEnv("PAGINATION_MAX_PAGE_SIZE", 100),
+		},
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -69,6 +80,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Server.IdleTimeout < 0 {
 		return fmt.Errorf("server idle timeout must be positive")
+	}
+	if c.Pagination.DefaultPageSize <= 0 {
+		return fmt.Errorf("pagination default page size must be positive")
+	}
+	if c.Pagination.MaxPageSize <= 0 {
+		return fmt.Errorf("pagination max page size must be positive")
+	}
+	if c.Pagination.DefaultPageSize > c.Pagination.MaxPageSize {
+		return fmt.Errorf("pagination default page size cannot exceed max page size")
 	}
 	return nil
 }

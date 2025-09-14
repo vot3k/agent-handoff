@@ -67,20 +67,30 @@ func (r *HandoffRepository) Create(ctx context.Context, handoff *models.Handoff)
 	}
 
 	// Store handoff data with 24 hour expiration
-	handoffKey := handoff.GetRedisKey()
-	if err := r.redis.client.Set(ctx, handoffKey, data, 24*time.Hour).Err(); err != nil {
-		return fmt.Errorf("failed to store handoff: %w", err)
-	}
-
-	// Add to priority queue
+	handoffKey := GetHandoffKey(handoff.Metadata.HandoffID)
 	queueName := handoff.GetQueueName()
 	score := handoff.GetPriorityScore()
-	
-	if err := r.redis.client.ZAdd(ctx, queueName, &redis.Z{
-		Score:  score,
-		Member: handoff.Metadata.HandoffID,
-	}).Err(); err != nil {
-		return fmt.Errorf("failed to queue handoff: %w", err)
+
+	// Use Redis transaction to ensure atomicity
+	_, err = r.redis.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		// Store handoff data
+		pipe.Set(ctx, handoffKey, data, 24*time.Hour)
+
+		// Add to priority queue
+		pipe.ZAdd(ctx, queueName, &redis.Z{
+			Score:  score,
+			Member: handoff.Metadata.HandoffID,
+		})
+
+		// Add to project set for efficient listing
+		projectSetKey := GetHandoffProjectSetKey(handoff.Metadata.ProjectName)
+		pipe.SAdd(ctx, projectSetKey, handoff.Metadata.HandoffID)
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to store handoff with transaction: %w", err)
 	}
 
 	return nil
@@ -88,8 +98,8 @@ func (r *HandoffRepository) Create(ctx context.Context, handoff *models.Handoff)
 
 // GetByID retrieves a handoff by its ID
 func (r *HandoffRepository) GetByID(ctx context.Context, handoffID string) (*models.Handoff, error) {
-	key := fmt.Sprintf("handoff:%s", handoffID)
-	
+	key := GetHandoffKey(handoffID)
+
 	data, err := r.redis.client.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -134,25 +144,30 @@ func (r *HandoffRepository) UpdateStatus(ctx context.Context, handoffID string, 
 
 // List retrieves handoffs with pagination
 func (r *HandoffRepository) List(ctx context.Context, projectName string, page, pageSize int) (*models.HandoffListResponse, error) {
-	// For simplicity, this implementation scans all handoff keys
-	// In production, you might want to maintain separate indexes
-	
-	pattern := fmt.Sprintf("handoff:*")
-	keys, err := r.redis.client.Keys(ctx, pattern).Result()
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan handoff keys: %w", err)
+	// Use Redis sets for efficient listing instead of KEYS command
+	var handoffIDs []string
+	var err error
+
+	if projectName != "" {
+		// Get all handoff IDs for this project from the set
+		projectSetKey := GetHandoffProjectSetKey(projectName)
+		handoffIDs, err = r.redis.client.SMembers(ctx, projectSetKey).Result()
+	} else {
+		// Get all handoff IDs from the global set
+		globalSetKey := GetHandoffListKey("")
+		handoffIDs, err = r.redis.client.SMembers(ctx, globalSetKey).Result()
 	}
 
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve handoff IDs: %w", err)
+	}
+
+	// Get the handoffs by their IDs
 	var handoffs []models.Handoff
-	for _, key := range keys {
-		data, err := r.redis.client.Get(ctx, key).Result()
+	for _, handoffID := range handoffIDs {
+		handoff, err := r.GetByID(ctx, handoffID)
 		if err != nil {
 			continue // Skip failed retrievals
-		}
-
-		var handoff models.Handoff
-		if err := handoff.FromJSON([]byte(data)); err != nil {
-			continue // Skip malformed data
 		}
 
 		// Filter by project if specified
@@ -160,7 +175,7 @@ func (r *HandoffRepository) List(ctx context.Context, projectName string, page, 
 			continue
 		}
 
-		handoffs = append(handoffs, handoff)
+		handoffs = append(handoffs, *handoff)
 	}
 
 	// Simple pagination
@@ -207,8 +222,8 @@ func (r *HandoffRepository) GetQueues(ctx context.Context, projectName string) (
 		}
 
 		// Parse project and agent name from queue name
-		projectName, agentName := parseQueueName(queueName)
-		
+		projectName, agentName := GetProjectAndAgentFromQueueKey(queueName)
+
 		queueInfo := models.QueueInfo{
 			QueueName:   queueName,
 			ProjectName: projectName,
@@ -287,7 +302,7 @@ func (r *HandoffRepository) getOldestTaskTime(ctx context.Context, queueName str
 
 	// Get the handoff ID
 	handoffID := result[0].Member.(string)
-	
+
 	// Retrieve the handoff to get creation time
 	handoff, err := r.GetByID(ctx, handoffID)
 	if err != nil {
