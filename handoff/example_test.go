@@ -3,18 +3,19 @@ package handoff
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
-// ExampleHandoffAgent demonstrates basic usage of the handoff agent
-func ExampleHandoffAgent() {
-	fmt.Println("Handoff Agent Example")
-	fmt.Println("Handoff system provides Redis-based queue management")
-	fmt.Println("Agents can publish and consume handoffs with validation")
-	// Output: Handoff Agent Example
-	// Handoff system provides Redis-based queue management
-	// Agents can publish and consume handoffs with validation
+// init sets up structured logging for examples
+func init() {
+	zerolog.TimeFieldFormat = time.RFC3339
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
 
 // ExampleHandoffRouter demonstrates intelligent routing
@@ -34,10 +35,10 @@ func ExampleHandoffRouter() {
 				Value:    true,
 			},
 			{
-				Type:     ConditionContent,
-				Field:    "summary",
-				Operator: "contains",
-				Value:    "implement",
+				Type:          ConditionContent,
+				Field:         "summary",
+				Operator:      "contains",
+				Value:         "implement",
 				CaseSensitive: false,
 			},
 		},
@@ -49,7 +50,7 @@ func ExampleHandoffRouter() {
 	handoff := &Handoff{
 		Metadata: Metadata{
 			FromAgent: "api-expert",
-			ToAgent:   "",  // Will be determined by router
+			ToAgent:   "", // Will be determined by router
 		},
 		Content: Content{
 			Summary: "Implement user service in Go",
@@ -69,20 +70,8 @@ func ExampleHandoffRouter() {
 	// Output: Routed to agent: golang-expert
 }
 
-// ExampleHandoffValidator demonstrates validation
-func ExampleHandoffValidator() {
-	fmt.Println("Handoff Validator Example")
-	fmt.Println("Validation enforces schema compliance")
-	fmt.Println("Agent-specific fields are validated")
-	fmt.Println("Content is sanitized and normalized")
-	// Output: Handoff Validator Example
-	// Validation enforces schema compliance
-	// Agent-specific fields are validated
-	// Content is sanitized and normalized
-}
-
-// ExampleHandoffMonitor demonstrates monitoring setup
-func ExampleHandoffMonitor() {
+// Example_monitoringAlerts demonstrates monitoring setup
+func Example_monitoringAlerts() {
 	// Add alert rules
 	queueAlert := AlertRule{
 		Name:      "high-queue-depth",
@@ -110,33 +99,8 @@ func ExampleHandoffMonitor() {
 	// Failure alert: high-failure-rate (threshold: 10.0%)
 }
 
-// TestHandoffLifecycle demonstrates a complete handoff lifecycle
-func TestHandoffLifecycle(t *testing.T) {
-	// This is a comprehensive test that would require Redis
-	// Skipping actual execution in example
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	// Setup would include:
-	// 1. Redis connection
-	// 2. Agent registration
-	// 3. Consumer setup
-	// 4. Handoff publishing
-	// 5. Processing verification
-	// 6. Metrics collection
-	// 7. Cleanup
-}
-
-// BenchmarkHandoffPublishing benchmarks handoff publishing performance
-func BenchmarkHandoffPublishing(b *testing.B) {
-	// This would benchmark the publishing performance
-	// Skipping actual execution in example
-	b.Skip("Benchmark requires Redis connection")
-}
-
-// ExampleHandoffAgent_integration shows how to integrate with existing agent system
-func ExampleHandoffAgent_integration() {
+// Example_agentCapabilities shows how to integrate with existing agent system
+func Example_agentCapabilities() {
 	// Configuration that matches existing patterns
 	agents := []AgentCapabilities{
 		{Name: "api-expert", QueueName: "handoff:queue:api-expert", MaxConcurrent: 5},
@@ -148,4 +112,130 @@ func ExampleHandoffAgent_integration() {
 
 	fmt.Printf("Handoff system initialized with %d agents\n", len(agents))
 	// Output: Handoff system initialized with 5 agents
+}
+
+// TestExampleRedisPoolConfiguration shows how to configure Redis pool for different environments
+func TestExampleRedisPoolConfiguration(t *testing.T) {
+	// This test demonstrates creating different pool configurations.
+	// In a real scenario, you would select one based on the environment.
+
+	// Development configuration - lighter resource usage
+	devConfig := RedisPoolConfig{
+		Addr:         "localhost:6379",
+		PoolSize:     10,
+		MinIdleConns: 2,
+	}
+
+	// Production configuration - optimized for high throughput
+	prodConfig := RedisPoolConfig{
+		Addr:         "redis-cluster.prod:6379",
+		PoolSize:     50,
+		MinIdleConns: 10,
+	}
+
+	t.Logf("Example dev config pool size: %d", devConfig.PoolSize)
+	t.Logf("Example prod config pool size: %d", prodConfig.PoolSize)
+
+	// This test doesn't connect, it just shows the configuration objects.
+}
+
+// TestFullHandoffFlow demonstrates a complete, optimized handoff from publishing to consuming.
+func TestFullHandoffFlow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Initialize optimized Redis configuration
+	redisConfig := DefaultRedisPoolConfig()
+	if addr := os.Getenv("REDIS_ADDR"); addr != "" {
+		redisConfig.Addr = addr
+	}
+
+	// Create optimized agent configuration
+	agentConfig := OptimizedConfig{
+		RedisConfig: redisConfig,
+		LogLevel:    "error", // Use error to avoid verbose logs in tests
+	}
+
+	// Create optimized handoff agent
+	agent, err := NewOptimizedHandoffAgent(agentConfig)
+	if err != nil {
+		t.Fatalf("Failed to create optimized handoff agent: %v", err)
+	}
+	defer agent.Close()
+
+	// Register agent capabilities
+	if err := agent.RegisterAgent(AgentCapabilities{Name: "golang-expert", MaxConcurrent: 2}); err != nil {
+		t.Fatalf("Failed to register agent: %v", err)
+	}
+	if err := agent.RegisterAgent(AgentCapabilities{Name: "test-expert", MaxConcurrent: 2}); err != nil {
+		t.Fatalf("Failed to register agent: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var processedHandoffID string
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Start consuming handoffs for golang-expert
+	go func() {
+		_ = agent.ConsumeHandoffs(ctx, "golang-expert", func(ctx context.Context, h *Handoff) error {
+			t.Logf("Processing handoff: %s", h.Metadata.HandoffID)
+			processedHandoffID = h.Metadata.HandoffID
+			wg.Done() // Signal that processing is done
+			return nil
+		})
+	}()
+
+	// Allow time for consumer to start
+	time.Sleep(500 * time.Millisecond)
+
+	// Example: Publish a handoff
+	handoff := &Handoff{
+		Metadata: Metadata{
+			ProjectName: "agent-handoff-optimization",
+			FromAgent:   "architect-expert",
+			ToAgent:     "golang-expert",
+			TaskContext: "Optimize Redis connection pooling",
+			Priority:    PriorityHigh,
+		},
+		Content: Content{
+			Summary:      "Implement connection pooling",
+			Requirements: []string{"Implement connection pooling for Redis"},
+		},
+	}
+
+	// Publish the handoff
+	if err := agent.PublishHandoff(ctx, handoff); err != nil {
+		t.Fatalf("Failed to publish handoff: %v", err)
+	}
+
+	t.Logf("Successfully published handoff: %s", handoff.Metadata.HandoffID)
+
+	// Wait for the handoff to be processed, with a timeout
+	if waitTimeout(&wg, 5*time.Second) {
+		t.Fatal("Timeout waiting for handoff to be processed")
+	}
+
+	if processedHandoffID != handoff.Metadata.HandoffID {
+		t.Errorf("Expected processed handoff ID to be %s, got %s", handoff.Metadata.HandoffID, processedHandoffID)
+	}
+}
+
+// waitTimeout waits for the waitgroup for the specified duration.
+// Returns true if waiting timed out.
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
 }

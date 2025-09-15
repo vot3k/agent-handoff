@@ -19,7 +19,7 @@ help:
 # Build settings
 BINARY_NAME=handoff-agent
 BUILD_DIR=./bin
-MAIN_PACKAGE=./cmd
+MAIN_PACKAGE=./cmd/main.go
 
 build:
 	@echo "Building $(BINARY_NAME)..."

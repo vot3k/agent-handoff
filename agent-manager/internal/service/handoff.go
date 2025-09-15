@@ -14,12 +14,12 @@ import (
 
 // HandoffService provides business logic for handoff operations
 type HandoffService struct {
-	repo   *repository.HandoffRepository
+	repo   repository.HandoffRepositoryInterface
 	config *config.Config
 }
 
 // NewHandoffService creates a new handoff service
-func NewHandoffService(repo *repository.HandoffRepository, cfg *config.Config) *HandoffService {
+func NewHandoffService(repo repository.HandoffRepositoryInterface, cfg *config.Config) *HandoffService {
 	return &HandoffService{
 		repo:   repo,
 		config: cfg,

@@ -51,6 +51,9 @@ type HandoffRepository struct {
 	redis *RedisClient
 }
 
+// Ensure HandoffRepository implements the interface at compile time
+var _ HandoffRepositoryInterface = (*HandoffRepository)(nil)
+
 // NewHandoffRepository creates a new handoff repository
 func NewHandoffRepository(redisClient *RedisClient) *HandoffRepository {
 	return &HandoffRepository{

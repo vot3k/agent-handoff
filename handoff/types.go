@@ -159,3 +159,53 @@ func DefaultRetryPolicy() RetryPolicy {
 		},
 	}
 }
+
+// AlertRule defines conditions that trigger alerts
+type AlertRule struct {
+	Name      string        `json:"name"`
+	Type      AlertType     `json:"type"`
+	Condition string        `json:"condition"` // e.g., "queue_depth > 100"
+	Threshold float64       `json:"threshold"`
+	Duration  time.Duration `json:"duration"` // How long condition must persist
+	Enabled   bool          `json:"enabled"`
+	LastFired time.Time     `json:"last_fired"`
+	Cooldown  time.Duration `json:"cooldown"` // Minimum time between alerts
+}
+
+// AlertType defines the type of alert
+type AlertType string
+
+const (
+	AlertQueueDepth     AlertType = "queue_depth"
+	AlertProcessingTime AlertType = "processing_time"
+	AlertFailureRate    AlertType = "failure_rate"
+	AlertAgentHealth    AlertType = "agent_health"
+	AlertSystemHealth   AlertType = "system_health"
+)
+
+// AlertEvent represents an alert that was triggered
+type AlertEvent struct {
+	Rule      AlertRule `json:"rule"`
+	Value     float64   `json:"value"`
+	Timestamp time.Time `json:"timestamp"`
+	Message   string    `json:"message"`
+	Severity  Severity  `json:"severity"`
+}
+
+// Severity defines alert severity levels
+type Severity string
+
+const (
+	SeverityInfo     Severity = "info"
+	SeverityWarning  Severity = "warning"
+	SeverityError    Severity = "error"
+	SeverityCritical Severity = "critical"
+)
+
+// QueueStatus contains status information for a queue
+type QueueStatus struct {
+	AgentName  string    `json:"agent_name"`
+	QueueDepth int       `json:"queue_depth"`
+	OldestItem time.Time `json:"oldest_item"`
+	QueueName  string    `json:"queue_name"`
+}

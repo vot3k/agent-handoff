@@ -1,3 +1,7 @@
+//go:build tools
+
+// This file is part of a validation tool and is not part of the main build.
+
 package main
 
 import (
@@ -74,7 +78,7 @@ func printSummary(report *handoff.ValidationReport) {
 	fmt.Printf("🏆 Individual Test Results\n")
 	fmt.Printf("=========================\n")
 	for _, result := range report.PerformanceGains {
-		fmt.Printf("%-20s: %.2fx improvement (%.0f ops vs %.0f ops)\n",
+		fmt.Printf("% -20s: %.2fx improvement (%.0f ops vs %.0f ops)\n",
 			result.TestName,
 			result.ImprovementRatio,
 			float64(result.OptimizedOps),

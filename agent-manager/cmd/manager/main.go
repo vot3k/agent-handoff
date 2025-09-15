@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -42,63 +41,11 @@ type HandoffPayload struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// findRunAgentScript locates the run-agent.sh script using multiple strategies
-func findRunAgentScript() (string, error) {
-	// Strategy 1: Check environment variable first
-	if scriptPath := os.Getenv("RUN_AGENT_SCRIPT_PATH"); scriptPath != "" {
-		if _, err := os.Stat(scriptPath); err == nil {
-			log.Printf("Using run-agent.sh from environment variable: %s", scriptPath)
-			return scriptPath, nil
-		}
-		log.Printf("Warning: RUN_AGENT_SCRIPT_PATH points to non-existent file: %s", scriptPath)
-	}
-
-	// Strategy 2: Find relative to executable location
-	execPath, err := os.Executable()
-	if err == nil {
-		execDir := filepath.Dir(execPath)
-		// Try same directory as executable
-		scriptPath := filepath.Join(execDir, "run-agent.sh")
-		if _, err := os.Stat(scriptPath); err == nil {
-			log.Printf("Found run-agent.sh relative to executable: %s", scriptPath)
-			return scriptPath, nil
-		}
-
-		// Try agent-manager directory (if executable is in a subdirectory)
-		agentManagerDir := filepath.Join(execDir, "..", "agent-manager")
-		scriptPath = filepath.Join(agentManagerDir, "run-agent.sh")
-		if _, err := os.Stat(scriptPath); err == nil {
-			absPath, _ := filepath.Abs(scriptPath)
-			log.Printf("Found run-agent.sh in agent-manager directory: %s", absPath)
-			return absPath, nil
-		}
-	}
-
-	// Strategy 3: Search common locations
-	searchPaths := []string{
-		"./run-agent.sh",                                    // Current directory
-		"./agent-manager/run-agent.sh",                      // Agent-manager subdirectory
-		"../agent-manager/run-agent.sh",                     // Parent then agent-manager
-		"/Users/jimmy/Dev/ai-platforms/agent-handoff/agent-manager/run-agent.sh", // Absolute fallback
-	}
-
-	for _, path := range searchPaths {
-		if absPath, err := filepath.Abs(path); err == nil {
-			if _, err := os.Stat(absPath); err == nil {
-				log.Printf("Found run-agent.sh at: %s", absPath)
-				return absPath, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("run-agent.sh script not found. Please set RUN_AGENT_SCRIPT_PATH environment variable or ensure script is in expected location")
-}
-
 func main() {
 	ctx := context.Background()
 
 	// Parse command line flags
-	mode := flag.String("mode", "dispatcher", "Operation mode: dispatcher|executor|hybrid")
+	mode := flag.String("mode", "dispatcher", "Operation mode: dispatcher|executor")
 	agentName := flag.String("agent", "", "Agent name (for executor mode)")
 	payloadFile := flag.String("payload-file", "", "Payload JSON file")
 	payloadStdin := flag.Bool("payload-stdin", false, "Read payload from stdin")
@@ -110,13 +57,10 @@ func main() {
 	case "executor":
 		runAgentExecutor(*agentName, *projectName, *payloadFile, *payloadStdin)
 		return
-	case "hybrid":
-		runHybridMode(ctx)
-		return
 	case "dispatcher":
 		// Continue with dispatcher mode below
 	default:
-		log.Fatalf("Unknown mode: %s. Use dispatcher, executor, or hybrid", *mode)
+		log.Fatalf("Unknown mode: %s. Use dispatcher or executor", *mode)
 	}
 
 	// Dispatcher mode setup
@@ -125,19 +69,12 @@ func main() {
 		redisAddr = "localhost:6379"
 	}
 
-	// Initialize agent executor for hybrid mode
-	agentExecutor, err := executor.NewAgentExecutor(executor.ModeHybrid)
+	// Initialize agent executor - only built-in executor now
+	agentExecutor, err := executor.NewAgentExecutor(executor.ModeExecutor)
 	if err != nil {
-		log.Printf("⚠️ Failed to initialize built-in executor, falling back to script mode: %v", err)
-		// Find the run-agent.sh script as fallback
-		runAgentScript, err := findRunAgentScript()
-		if err != nil {
-			log.Fatalf("❌ Failed to locate run-agent.sh script and built-in executor failed: %v", err)
-		}
-		log.Printf("📝 Using run-agent.sh script at: %s", runAgentScript)
-	} else {
-		log.Printf("✅ Using built-in agent executor with tool-agnostic execution")
+		log.Fatalf("❌ Failed to initialize built-in executor: %v", err)
 	}
+	log.Printf("✅ Using built-in agent executor with tool-agnostic execution")
 
 	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})
 
@@ -202,14 +139,8 @@ func main() {
 				continue
 			}
 
-			// Dispatch the task in a new goroutine
-			if agentExecutor != nil {
-				go dispatchWithBuiltInExecutor(projectName, agentName, taskPayload, agentExecutor)
-			} else {
-				// Fallback to script execution if built-in executor failed
-				runAgentScript, _ := findRunAgentScript() // We already validated this above
-				go dispatchAndArchiveTask(projectName, agentName, taskPayload, runAgentScript)
-			}
+			// Dispatch the task in a new goroutine using built-in executor
+			go dispatchWithBuiltInExecutor(projectName, agentName, taskPayload, agentExecutor)
 		}
 
 		// Small delay to prevent busy-waiting if all queues were empty
@@ -225,52 +156,6 @@ func extractProjectAndAgentName(queueName string) (string, string) {
 		return parts[2], parts[4]
 	}
 	return "", ""
-}
-
-// dispatchAndArchiveTask handles the execution and archival of a single task.
-func dispatchAndArchiveTask(projectName, agentName, payload, runAgentScript string) {
-	log.Printf("[Dispatch] Processing task for project '%s', agent '%s'", projectName, agentName)
-
-	var handoff HandoffPayload
-	if err := json.Unmarshal([]byte(payload), &handoff); err != nil {
-		log.Printf("[ERROR] Failed to decode task payload: %v", err)
-		return
-	}
-
-	handoffID := handoff.Metadata.HandoffID
-	if handoffID == "" {
-		log.Printf("[ERROR] Missing handoff ID in payload")
-		return
-	}
-
-	log.Printf("[Dispatch] Invoking agent '%s' for handoff '%s' in project '%s'", agentName, handoffID, projectName)
-
-	// Set environment variable for the agent
-	env := os.Environ()
-	env = append(env, fmt.Sprintf("AGENT_PROJECT_NAME=%s", projectName))
-
-	// Use the located run-agent.sh script with absolute path
-	cmd := exec.Command(runAgentScript, agentName, payload)
-	
-	// Set working directory to the script's directory for consistency
-	scriptDir := filepath.Dir(runAgentScript)
-	cmd.Dir = scriptDir
-	cmd.Env = env // Pass the environment with the project name
-
-	log.Printf("[DEBUG] Executing: %s %s [payload] from directory: %s", runAgentScript, agentName, scriptDir)
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Printf("[FAILURE] Agent '%s' failed: %v\n--- Output ---\n%s\n--------------", agentName, err, string(output))
-		return
-	}
-
-	log.Printf("[SUCCESS] Agent '%s' completed for handoff '%s'.", agentName, handoffID)
-	log.Printf("[OUTPUT]\n%s", string(output))
-
-	if err := archiveHandoff(payload, &handoff, handoffID); err != nil {
-		log.Printf("[CRITICAL] Agent '%s' succeeded but failed to archive: %v", agentName, err)
-	}
 }
 
 // archiveHandoff saves the successful handoff payload to the file system.
@@ -346,32 +231,23 @@ func runAgentExecutor(agentName, projectName, payloadFile string, payloadStdin b
 	if response.Success {
 		log.Printf("✅ Agent '%s' completed successfully in %v", req.AgentName, response.Duration)
 		log.Printf("📄 Output:\n%s", response.Output)
-		
+
 		if len(response.Artifacts) > 0 {
 			log.Printf("📦 Artifacts: %v", response.Artifacts)
 		}
-		
+
 		if len(response.NextHandoffs) > 0 {
 			log.Printf("🔄 Next handoffs: %d pending", len(response.NextHandoffs))
 			for i, handoff := range response.NextHandoffs {
 				log.Printf("   %d. %s: %s", i+1, handoff.ToAgent, handoff.Summary)
 			}
 		}
-		
+
 		os.Exit(0)
 	} else {
 		log.Printf("❌ Agent '%s' failed: %s", req.AgentName, response.Error)
 		os.Exit(1)
 	}
-}
-
-// runHybridMode runs in hybrid mode with built-in execution and script fallback
-func runHybridMode(ctx context.Context) {
-	log.Printf("🔄 Starting in hybrid mode (built-in + script fallback)")
-	
-	// This would be similar to dispatcher mode but with enhanced execution
-	// For now, just run dispatcher mode with built-in executor
-	// The main dispatcher loop already handles this
 }
 
 // dispatchWithBuiltInExecutor dispatches using the built-in executor
@@ -410,17 +286,17 @@ func dispatchWithBuiltInExecutor(projectName, agentName, payload string, agentEx
 	if response.Success {
 		log.Printf("[SUCCESS] Built-in agent '%s' completed for handoff '%s' in %v", agentName, handoffID, response.Duration)
 		log.Printf("[OUTPUT]\n%s", response.Output)
-		
+
 		if len(response.Artifacts) > 0 {
 			log.Printf("[ARTIFACTS] %v", response.Artifacts)
 		}
-		
+
 		// Handle next handoffs
 		if len(response.NextHandoffs) > 0 {
 			log.Printf("[HANDOFFS] Creating %d follow-up handoffs", len(response.NextHandoffs))
 			// TODO: Implement follow-up handoff creation
 		}
-		
+
 		if err := archiveHandoff(payload, &handoff, handoffID); err != nil {
 			log.Printf("[CRITICAL] Agent '%s' succeeded but failed to archive: %v", agentName, err)
 		}
@@ -438,7 +314,7 @@ func getPayload(payloadFile string, payloadStdin bool) string {
 		}
 		return strings.TrimSpace(string(content))
 	}
-	
+
 	if payloadFile != "" {
 		content, err := os.ReadFile(payloadFile)
 		if err != nil {
@@ -446,6 +322,6 @@ func getPayload(payloadFile string, payloadStdin bool) string {
 		}
 		return strings.TrimSpace(string(content))
 	}
-	
+
 	return ""
 }

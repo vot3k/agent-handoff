@@ -29,17 +29,17 @@ type ServiceConfig struct {
 		Password string `json:"password,omitempty"`
 		DB       int    `json:"db"`
 	} `json:"redis"`
-	
+
 	Logging struct {
 		Level string `json:"level"`
 	} `json:"logging"`
-	
+
 	Agents []handoff.AgentCapabilities `json:"agents"`
-	
+
 	Routes map[string][]handoff.RouteRule `json:"routes"`
-	
+
 	AlertRules []handoff.AlertRule `json:"alert_rules"`
-	
+
 	Monitoring struct {
 		Enabled  bool          `json:"enabled"`
 		Interval time.Duration `json:"interval"`
@@ -233,7 +233,7 @@ func main() {
 
 	// Load configuration
 	config := loadConfig(*configFile)
-	
+
 	// Override with command line flags
 	if *redisAddr != "localhost:6379" {
 		config.Redis.Addr = *redisAddr
@@ -245,15 +245,18 @@ func main() {
 		config.Logging.Level = *logLevel
 	}
 
-	// Create handoff agent
-	handoffConfig := handoff.Config{
-		RedisAddr:   config.Redis.Addr,
-		RedisPassword: config.Redis.Password,
-		RedisDB:     config.Redis.DB,
+	// Create optimized handoff agent
+	poolConfig := handoff.DefaultRedisPoolConfig()
+	poolConfig.Addr = config.Redis.Addr
+	poolConfig.Password = config.Redis.Password
+	poolConfig.DB = config.Redis.DB
+
+	handoffConfig := handoff.OptimizedConfig{
+		RedisConfig: poolConfig,
 		LogLevel:    config.Logging.Level,
 	}
 
-	agent, err := handoff.NewHandoffAgent(handoffConfig)
+	agent, err := handoff.NewOptimizedHandoffAgent(handoffConfig)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create handoff agent")
 	}
@@ -286,10 +289,10 @@ func main() {
 	}
 
 	// Setup monitoring
-	var monitor *handoff.HandoffMonitor
+	var monitor *handoff.OptimizedHandoffMonitor
 	if config.Monitoring.Enabled {
-		monitor = handoff.NewHandoffMonitor(agent.GetRedisClient())
-		
+		monitor = handoff.NewOptimizedHandoffMonitor(agent.GetRedisManager())
+
 		// Add alert rules
 		for _, rule := range config.AlertRules {
 			monitor.AddAlertRule(rule)
@@ -348,7 +351,7 @@ func main() {
 
 			return nil
 		})
-		
+
 		if err != nil {
 			log.Error().Err(err).Msg("Consumer error")
 		}
@@ -367,7 +370,7 @@ func main() {
 
 	// Graceful shutdown
 	cancel()
-	
+
 	log.Info().Msg("Handoff agent service stopped")
 }
 

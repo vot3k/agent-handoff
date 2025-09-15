@@ -2,6 +2,7 @@ package handoff
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -18,13 +19,13 @@ type RedisPoolConfig struct {
 	DB       int    `json:"db"`
 
 	// Pool settings
-	PoolSize        int           `json:"pool_size"`         // Maximum number of socket connections
-	MinIdleConns    int           `json:"min_idle_conns"`    // Minimum number of idle connections
-	MaxConnAge      time.Duration `json:"max_conn_age"`      // Connection age at which client retires connection
-	PoolTimeout     time.Duration `json:"pool_timeout"`      // Amount of time client waits for connection
-	IdleTimeout     time.Duration `json:"idle_timeout"`      // Amount of time after which client closes idle connections
-	IdleCheckFreq   time.Duration `json:"idle_check_freq"`   // Frequency of idle checks
-	
+	PoolSize      int           `json:"pool_size"`       // Maximum number of socket connections
+	MinIdleConns  int           `json:"min_idle_conns"`  // Minimum number of idle connections
+	MaxConnAge    time.Duration `json:"max_conn_age"`    // Connection age at which client retires connection
+	PoolTimeout   time.Duration `json:"pool_timeout"`    // Amount of time client waits for connection
+	IdleTimeout   time.Duration `json:"idle_timeout"`    // Amount of time after which client closes idle connections
+	IdleCheckFreq time.Duration `json:"idle_check_freq"` // Frequency of idle checks
+
 	// Operation timeouts
 	DialTimeout  time.Duration `json:"dial_timeout"`  // Timeout for socket connection
 	ReadTimeout  time.Duration `json:"read_timeout"`  // Timeout for socket reads
@@ -45,17 +46,17 @@ func DefaultRedisPoolConfig() RedisPoolConfig {
 		DB:       0,
 
 		// Pool configuration optimized for high throughput
-		PoolSize:      25,                 // Max connections in pool
-		MinIdleConns:  5,                  // Keep minimum idle connections
-		MaxConnAge:    5 * time.Minute,    // Rotate connections every 5 minutes
-		PoolTimeout:   4 * time.Second,    // Wait up to 4 seconds for connection
-		IdleTimeout:   10 * time.Minute,   // Close idle connections after 10 minutes
-		IdleCheckFreq: 1 * time.Minute,    // Check for idle connections every minute
+		PoolSize:      25,               // Max connections in pool
+		MinIdleConns:  5,                // Keep minimum idle connections
+		MaxConnAge:    5 * time.Minute,  // Rotate connections every 5 minutes
+		PoolTimeout:   4 * time.Second,  // Wait up to 4 seconds for connection
+		IdleTimeout:   10 * time.Minute, // Close idle connections after 10 minutes
+		IdleCheckFreq: 1 * time.Minute,  // Check for idle connections every minute
 
 		// Timeout configuration
-		DialTimeout:  5 * time.Second,     // Connection establishment timeout
-		ReadTimeout:  3 * time.Second,     // Read operation timeout
-		WriteTimeout: 3 * time.Second,     // Write operation timeout
+		DialTimeout:  5 * time.Second, // Connection establishment timeout
+		ReadTimeout:  3 * time.Second, // Read operation timeout
+		WriteTimeout: 3 * time.Second, // Write operation timeout
 
 		// Health check configuration
 		HealthCheckInterval: 30 * time.Second,
@@ -79,57 +80,57 @@ type RedisPoolManager struct {
 
 // HealthStatus represents the health state of the Redis connection
 type HealthStatus struct {
-	IsHealthy          bool      `json:"is_healthy"`
-	LastHealthCheck    time.Time `json:"last_health_check"`
-	LastSuccessfulPing time.Time `json:"last_successful_ping"`
+	IsHealthy           bool      `json:"is_healthy"`
+	LastHealthCheck     time.Time `json:"last_health_check"`
+	LastSuccessfulPing  time.Time `json:"last_successful_ping"`
 	ConsecutiveFailures int       `json:"consecutive_failures"`
-	LastError          string    `json:"last_error,omitempty"`
+	LastError           string    `json:"last_error,omitempty"`
 }
 
 // RedisPoolMetrics contains detailed metrics about the connection pool
 type RedisPoolMetrics struct {
 	// Pool statistics
-	TotalConns     uint32        `json:"total_conns"`
-	IdleConns      uint32        `json:"idle_conns"`
-	StaleConns     uint32        `json:"stale_conns"`
-	Hits           uint64        `json:"hits"`
-	Misses         uint64        `json:"misses"`
-	Timeouts       uint64        `json:"timeouts"`
-	
+	TotalConns uint32 `json:"total_conns"`
+	IdleConns  uint32 `json:"idle_conns"`
+	StaleConns uint32 `json:"stale_conns"`
+	Hits       uint64 `json:"hits"`
+	Misses     uint64 `json:"misses"`
+	Timeouts   uint64 `json:"timeouts"`
+
 	// Performance metrics
 	AvgLatency     time.Duration `json:"avg_latency"`
 	MaxLatency     time.Duration `json:"max_latency"`
 	TotalRequests  uint64        `json:"total_requests"`
 	FailedRequests uint64        `json:"failed_requests"`
-	
+
 	// Memory optimization metrics
-	MemoryUsage    int64         `json:"memory_usage_bytes"`
-	PipelineHits   uint64        `json:"pipeline_hits"`
-	BatchOperations uint64       `json:"batch_operations"`
-	
-	LastUpdated    time.Time     `json:"last_updated"`
+	MemoryUsage     int64  `json:"memory_usage_bytes"`
+	PipelineHits    uint64 `json:"pipeline_hits"`
+	BatchOperations uint64 `json:"batch_operations"`
+
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 // NewRedisPoolManager creates a new Redis pool manager with health checking
 func NewRedisPoolManager(config RedisPoolConfig) (*RedisPoolManager, error) {
 	options := &redis.Options{
-		Addr:         config.Addr,
-		Password:     config.Password,
-		DB:           config.DB,
-		
+		Addr:     config.Addr,
+		Password: config.Password,
+		DB:       config.DB,
+
 		// Pool configuration
-		PoolSize:      config.PoolSize,
-		MinIdleConns:  config.MinIdleConns,
-		MaxConnAge:    config.MaxConnAge,
-		PoolTimeout:   config.PoolTimeout,
-		IdleTimeout:   config.IdleTimeout,
+		PoolSize:           config.PoolSize,
+		MinIdleConns:       config.MinIdleConns,
+		MaxConnAge:         config.MaxConnAge,
+		PoolTimeout:        config.PoolTimeout,
+		IdleTimeout:        config.IdleTimeout,
 		IdleCheckFrequency: config.IdleCheckFreq,
-		
+
 		// Timeout configuration
 		DialTimeout:  config.DialTimeout,
 		ReadTimeout:  config.ReadTimeout,
 		WriteTimeout: config.WriteTimeout,
-		
+
 		// Retry configuration
 		MaxRetries:      config.MaxRetries,
 		MinRetryBackoff: config.MinRetryBackoff,
@@ -141,7 +142,7 @@ func NewRedisPoolManager(config RedisPoolConfig) (*RedisPoolManager, error) {
 	// Test initial connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if err := client.Ping(ctx).Err(); err != nil {
 		client.Close()
 		return nil, fmt.Errorf("failed to connect to Redis at %s: %w", config.Addr, err)
@@ -191,7 +192,7 @@ func (r *RedisPoolManager) GetHealthStatus() HealthStatus {
 func (r *RedisPoolManager) GetMetrics() RedisPoolMetrics {
 	r.metricsMutex.Lock()
 	defer r.metricsMutex.Unlock()
-	
+
 	// Update metrics from Redis client
 	r.updateMetricsLocked()
 	return *r.metrics
@@ -207,14 +208,10 @@ func (r *RedisPoolManager) IsHealthy() bool {
 // ExecuteWithRetry executes a Redis operation with retry logic and metrics tracking
 func (r *RedisPoolManager) ExecuteWithRetry(ctx context.Context, operation func(*redis.Client) error) error {
 	start := time.Now()
-	defer func() {
-		latency := time.Since(start)
-		r.recordMetrics(latency, nil)
-	}()
 
 	var lastErr error
 	maxRetries := r.config.MaxRetries
-	
+
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
 			// Exponential backoff
@@ -227,16 +224,23 @@ func (r *RedisPoolManager) ExecuteWithRetry(ctx context.Context, operation func(
 
 		err := operation(r.client)
 		if err == nil {
+			latency := time.Since(start)
+			r.recordMetrics(latency, nil)
 			return nil
 		}
 
+		// Do not retry on context cancellation
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
 		lastErr = err
-		
+
 		// Check if error is retriable
 		if !r.isRetriableError(err) {
 			break
 		}
-		
+
 		log.Warn().
 			Err(err).
 			Int("attempt", attempt+1).
@@ -244,7 +248,8 @@ func (r *RedisPoolManager) ExecuteWithRetry(ctx context.Context, operation func(
 			Msg("Redis operation failed, retrying")
 	}
 
-	r.recordMetrics(0, lastErr)
+	latency := time.Since(start)
+	r.recordMetrics(latency, lastErr)
 	return fmt.Errorf("redis operation failed after %d attempts: %w", maxRetries+1, lastErr)
 }
 
@@ -277,7 +282,7 @@ func (r *RedisPoolManager) Close() error {
 // runHealthCheck performs periodic health checks
 func (r *RedisPoolManager) runHealthCheck() {
 	defer close(r.healthDone)
-	
+
 	ticker := time.NewTicker(r.config.HealthCheckInterval)
 	defer ticker.Stop()
 
@@ -313,7 +318,7 @@ func (r *RedisPoolManager) performHealthCheck() {
 	if err != nil {
 		r.healthStatus.ConsecutiveFailures++
 		r.healthStatus.LastError = err.Error()
-		
+
 		// Consider unhealthy after 3 consecutive failures
 		if r.healthStatus.ConsecutiveFailures >= 3 {
 			r.healthStatus.IsHealthy = false
@@ -339,7 +344,7 @@ func (r *RedisPoolManager) performHealthCheck() {
 // updateMetricsLocked updates metrics from Redis client stats
 func (r *RedisPoolManager) updateMetricsLocked() {
 	stats := r.client.PoolStats()
-	
+
 	r.metrics.TotalConns = stats.TotalConns
 	r.metrics.IdleConns = stats.IdleConns
 	r.metrics.StaleConns = stats.StaleConns
@@ -355,7 +360,8 @@ func (r *RedisPoolManager) recordMetrics(latency time.Duration, err error) {
 	defer r.metricsMutex.Unlock()
 
 	r.metrics.TotalRequests++
-	
+	log.Debug().Uint64("total_requests", r.metrics.TotalRequests).Msg("recordMetrics called")
+
 	if err != nil {
 		r.metrics.FailedRequests++
 	}
@@ -384,7 +390,7 @@ func (r *RedisPoolManager) isRetriableError(err error) bool {
 	}
 
 	errStr := err.Error()
-	
+
 	// Network errors and timeouts are retriable
 	retriablePatterns := []string{
 		"connection refused",
@@ -394,6 +400,7 @@ func (r *RedisPoolManager) isRetriableError(err error) bool {
 		"connection reset",
 		"io: read/write on closed pipe",
 		"use of closed network connection",
+		"temporary failure",
 	}
 
 	for _, pattern := range retriablePatterns {
