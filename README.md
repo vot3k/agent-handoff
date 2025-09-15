@@ -16,14 +16,6 @@ Together, they provide real-time queue management, intelligent routing, schema v
 
 The enhanced manager supports three intelligent execution strategies:
 
-### Hybrid Mode (Default)
-```bash
-manager --mode hybrid
-```
-- **Zero Configuration**: Works immediately in any project directory
-- **Smart Tool Detection**: Automatically finds and uses Claude Code, VS Code, Docker, npm, etc.
-- **Intelligent Fallbacks**: Priority-based selection (claude-code > cursor > vscode > generic)
-- **Project Awareness**: Detects Go, Node.js, Python, Rust projects automatically
 
 ### Built-in Agent Mode
 ```bash
@@ -34,7 +26,7 @@ manager --mode executor --agent project-manager --payload-file task.json
 - **No External Dependencies**: Pure Go implementations with comprehensive logic
 - **Performance**: Sub-millisecond operation performance
 
-### Legacy Dispatcher Mode
+###  Dispatcher Mode
 ```bash
 manager --mode dispatcher
 ```
