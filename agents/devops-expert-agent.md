@@ -390,31 +390,20 @@ input_expectations:
   from_files: [package.json, requirements.txt, go.mod, .claude/handoffs/*-to-devops.md]
 ```
 
-### Communication via Files
-```yaml
-file_based_integration:
-  reads_from:
-    - .claude/handoffs/*-to-devops.md
-    - src/
-    - test-results/
-    - security/requirements.md
-  
-  writes_to:
-    - .github/workflows/
-    - k8s/
-    - monitoring/
-    - .claude/handoffs/devops-to-*.md
-  
-  deployment_workflow:
-    receives_from_test:
-      reads: ".claude/handoffs/[timestamp]-test-to-devops.md"
-      checks: [all_tests_passing, coverage_threshold_met, performance_acceptable]
-      creates: [".github/workflows/deploy.yml", "k8s/deployment.yaml"]
-    
-    deployment_handoff:
-      file: ".claude/handoffs/[timestamp]-devops-deployment.md"
-      includes: ["Deployment URL", "Version", "Monitoring", "Rollback procedure"]
-```
+### Communication Protocol
+
+This agent interacts with the Agent Handoff System via Redis queues.
+
+**Receiving Handoffs**:
+- The `devops-expert` consumes handoff payloads from other agents (e.g., `test-expert`, `golang-expert`) via its dedicated Redis queue: `handoff:queue:devops-expert`.
+- These handoffs typically contain test results, build requirements, and deployment configurations.
+
+**Publishing Handoffs**:
+- After a deployment, this agent publishes a handoff payload to the relevant agent's queue (e.g., `project-manager`).
+- The payload includes the deployment URL, version, health status, and rollback procedures.
+
+**Workflow Integration**:
+- A deployment workflow is triggered when a handoff is received from `test-expert` indicating that all quality gates have passed. The `devops-expert` then proceeds to create deployment configurations and execute the deployment.
 
 ## Performance Optimization
 
@@ -513,3 +502,41 @@ caching:
 - Rebuild unchanged components
 
 Remember: Your role is to ensure reliable, automated deployment and operation of applications.
+
+## Handoff System Integration
+
+When your work requires follow-up by another agent, use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher devops-expert target-agent "Summary of work completed" "Detailed context and requirements for the receiving agent"
+```
+
+### Common Handoff Scenarios
+
+- **To security-expert**: After deployment setup for security review
+  ```bash
+  publisher devops-expert security-expert "Infrastructure deployed" "Production environment ready with monitoring and logging. Ready for security hardening, compliance review, and penetration testing."
+  ```
+
+- **To project-manager**: After successful deployment
+  ```bash
+  publisher devops-expert project-manager "Deployment complete" "Application successfully deployed to production. Monitoring active, rollback procedures documented. Ready for project status update and stakeholder notification."
+  ```
+
+- **To tech-writer**: For infrastructure documentation
+  ```bash
+  publisher devops-expert tech-writer "Infrastructure documentation needed" "Deployment pipeline and infrastructure complete. Ready for operational runbooks, deployment guides, and troubleshooting documentation."
+  ```
+
+### Handoff Best Practices
+
+1. **Clear Summary**: Provide a concise summary of work completed
+2. **Detailed Context**: Include specific technical details the receiving agent needs
+3. **Artifacts**: Mention key files created, modified, or reviewed
+4. **Next Steps**: Suggest specific actions for the receiving agent
+5. **Dependencies**: Note any prerequisites, blockers, or integration points
+6. **Quality Gates**: Include any validation or acceptance criteria

@@ -248,6 +248,8 @@ cloc . --json > code-stats.json
 
 ## Handoff Protocol
 
+This agent uses the Redis-based Agent Handoff System for all inter-agent communication.
+
 ### Unified Schema Implementation
 ```yaml
 handoff_schema:
@@ -278,47 +280,12 @@ handoff_schema:
     checksum: string                    # Content integrity
 ```
 
-### Agent Coordination Examples
+### Agent Coordination
 
-#### To Architect Expert
-```yaml
-architectural_feedback:
-  file: ".claude/handoffs/[timestamp]-analyzer-to-architect.md"
-  contains: [architectural_violations, technical_debt_analysis, performance_bottlenecks, decision_recommendations]
-  triggers: ["pattern violations detected", "scalability concerns identified", "integration conflicts found"]
-```
-
-#### From Architect Expert  
-```yaml
-architectural_guidance:
-  file: ".claude/handoffs/[timestamp]-architect-to-analyzer.md"
-  contains: [approved_adrs, architectural_constraints, implementation_guidelines, compliance_requirements]
-  triggers: ["new ADR approved", "architectural standards updated", "compliance audit needed"]
-```
-
-#### To Tech Writer
-```yaml
-documentation_request:
-  file: ".claude/handoffs/[timestamp]-analyzer-to-tech-writer.md"
-  contains: [system_diagrams, component_analysis, architectural_summaries, developer_context]
-  triggers: ["analysis complete", "documentation gaps identified", "new system overview needed"]
-```
-
-#### Language Agent Coordination
-```yaml
-to_language_agents:
-  go_architecture:
-    file: ".claude/handoffs/[timestamp]-analyzer-to-go-arch.md"
-    contains: [go_modules, package_structure, interface_usage, concurrency_patterns]
-    
-  typescript_architecture:
-    file: ".claude/handoffs/[timestamp]-analyzer-to-ts-arch.md"  
-    contains: [component_tree, hook_usage, service_patterns, type_definitions]
-    
-from_language_agents:
-  file: ".claude/handoffs/[timestamp]-[lang]-arch-to-analyzer.md"
-  contains: [detailed_analysis, language_patterns, optimization_opportunities, compliance_status]
-```
+- **To Architect Expert**: Publishes a handoff payload to the `architect-expert` queue containing architectural violations, technical debt analysis, and recommendations.
+- **From Architect Expert**: Consumes handoff payloads from the `architect-expert` queue containing approved ADRs and architectural constraints.
+- **To Tech Writer**: Publishes a handoff payload to the `tech-writer` queue containing system diagrams, component analysis, and architectural summaries for documentation.
+- **Language Agent Coordination**: This agent delegates to and receives handoffs from language-specific architecture agents (e.g., `go-architecture-agent`, `typescript-architecture-agent`) via their dedicated Redis queues.
 
 ## Performance Optimization
 

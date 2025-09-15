@@ -1,6 +1,6 @@
-module github.com/claude-agent/handoff
+module github.com/vot3k/agent-handoff/handoff
 
-go 1.21
+go 1.25.1
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5

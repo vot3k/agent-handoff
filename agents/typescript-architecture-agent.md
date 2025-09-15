@@ -398,55 +398,23 @@ flowchart TD
 
 ## Handoff Protocol
 
+This agent uses the Redis-based Agent Handoff System for all inter-agent communication.
+
 ### To Architecture Analyzer
-```yaml
-handoff_to_analyzer:
-  technical_details:
-    component_architecture: object    # Complete component organization
-    type_system_design: object       # TypeScript patterns and relationships
-    state_management: object         # State flow and management patterns
-    performance_characteristics: object # Bundle size, render performance
-    react_patterns: string[]         # React-specific patterns detected
-    dependencies: object             # npm dependencies analysis
-    build_configuration: object      # Build tools and optimization
-    architectural_violations: string[] # React/TypeScript anti-patterns
-    optimization_opportunities: string[] # Performance and design improvements
-```
+Publishes a handoff payload to the `architecture-analyzer` queue. The `technical_details` of the payload include:
+- `component_architecture`: Complete component organization
+- `type_system_design`: TypeScript patterns and relationships
+- `state_management`: State flow and management patterns
+- `react_patterns`: React-specific patterns detected
 
 ### From Architecture Analyzer
-```yaml
-handoff_from_analyzer:
-  receives:
-    - project_context: "Overall system architecture context"
-    - analysis_scope: "Specific React/TypeScript areas to analyze"
-    - performance_requirements: "Frontend performance criteria"
-    - integration_points: "API contracts and external dependencies"
-    - architectural_constraints: "React/TypeScript architectural guidelines"
-```
+Consumes handoff payloads from the `architecture-analyzer` queue, which provide overall project context and specify the scope of the React/TypeScript components to be analyzed.
 
 ### To Architect Expert
-```yaml
-architectural_concerns:
-  file: ".claude/handoffs/[timestamp]-ts-arch-to-architect.md"
-  contains: [react_antipatterns, state_management_issues, performance_violations, frontend_adr_recommendations]
-  triggers: ["component design violations", "state management complexity", "bundle size issues"]
-```
-
-### From Architect Expert
-```yaml
-architectural_decisions:
-  file: ".claude/handoffs/[timestamp]-architect-to-ts-arch.md"
-  contains: [frontend_adrs, component_design_decisions, state_management_guidelines, performance_standards]
-  triggers: ["new React architecture ADR", "component restructuring decision", "performance requirements updated"]
-```
+When significant architectural issues are found (e.g., anti-patterns, state management complexity), a handoff is published to the `architect-expert` queue with recommendations for a formal ADR.
 
 ### To Tech Writer
-```yaml
-documentation_handoff:
-  file: ".claude/handoffs/[timestamp]-ts-arch-to-tech-writer.md"
-  contains: [component_documentation, react_pattern_guides, typescript_examples, performance_runbooks]
-  triggers: ["React analysis complete", "new patterns documented", "developer guides needed"]
-```
+Publishes handoffs to the `tech-writer` queue containing component documentation, React pattern guides, and TypeScript examples for creating developer documentation.
 
 ## Performance Analysis
 

@@ -134,14 +134,14 @@ backlog task show TASK-001 --json | jq '.metadata'
 
 ## Handoff Protocol
 
-Uses unified schema with PM-specific `technical_details`:
-```yaml
-metadata: {from_agent, to_agent, timestamp, task_context, priority}
-content: {summary, requirements[], artifacts{created[], modified[], reviewed[]}, technical_details, next_steps[]}
-validation: {schema_version: "1.0", checksum}
-```
+This agent uses the Redis-based Agent Handoff System to coordinate with other agents. While tasks are managed in the `backlog` CLI, communication about task readiness and completion is done via Redis queues.
+
+When a task is prioritized and ready for implementation, this agent publishes a handoff payload to the appropriate agent's queue (e.g., `handoff:queue:golang-expert`). The payload contains the task ID, description, acceptance criteria, and other relevant details from the backlog.
+
+It also consumes handoffs from other agents to track progress and update task statuses in the backlog.
 
 ### PM Technical Details
+Uses the unified schema with agent-specific `technical_details`:
 ```yaml
 technical_details:
   task_id: string

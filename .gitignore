@@ -1,0 +1,10 @@
+agent-manager/archive/
+bin/
+
+# macOS
+.DS_Store
+
+# Binaries
+agent-manager/agent-manager
+agent-manager/main
+agent-manager/test-publisher

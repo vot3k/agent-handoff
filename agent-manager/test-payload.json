@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "handoff_id": "test-123456",
+    "from_agent": "test-client",
+    "to_agent": "project-manager",
+    "project_name": "aegix",
+    "timestamp": "2025-01-14T01:00:00Z",
+    "priority": "normal"
+  },
+  "content": {
+    "summary": "Analyze the aegix project and provide management insights",
+    "requirements": [
+      "Review project structure",
+      "Identify improvement opportunities", 
+      "Generate actionable recommendations"
+    ],
+    "technical_details": {
+      "project_type": "go",
+      "focus_areas": ["architecture", "testing", "documentation"]
+    }
+  },
+  "status": "pending",
+  "created_at": "2025-01-14T01:00:00Z",
+  "updated_at": "2025-01-14T01:00:00Z"
+}

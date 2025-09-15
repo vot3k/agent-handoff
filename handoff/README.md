@@ -52,7 +52,7 @@ Configuration is provided via JSON file:
   "agents": [
     {
       "name": "golang-expert",
-      "queue_name": "handoff:queue:golang-expert",
+      "queue_name": "handoff:project:my-project:queue:golang-expert",
       "max_concurrent": 3
     }
   ],
@@ -88,6 +88,7 @@ Publisher → Validation → Routing → Queue → Consumer → Processing → C
 ```go
 handoff := &Handoff{
     Metadata: Metadata{
+        ProjectName: "my-project", // Added for multi-project support
         FromAgent:   "api-expert",
         ToAgent:     "golang-expert", 
         TaskContext: "User authentication",
@@ -114,7 +115,8 @@ handler := func(ctx context.Context, handoff *Handoff) error {
     return processImplementation(ctx, handoff)
 }
 
-err := agent.ConsumeHandoffs(ctx, "golang-expert", handler)
+// Agents listen on their project-specific queue
+err := agent.ConsumeHandoffs(ctx, "my-project", "golang-expert", handler)
 ```
 
 ### Intelligent Routing
@@ -198,6 +200,7 @@ make coverage
 
 ```yaml
 metadata:
+  project_name: string       # Name of the project context
   from_agent: string       # Source agent name
   to_agent: string         # Target agent name  
   timestamp: datetime      # Creation timestamp
@@ -246,8 +249,8 @@ technical_details:
 The handoff system integrates seamlessly with existing agents:
 
 1. **Agent Registration**: Each agent registers its capabilities
-2. **Queue Consumption**: Agents consume from their dedicated queues
-3. **Handoff Creation**: Agents create handoffs for other agents
+2. **Queue Consumption**: Agents consume from their dedicated, project-specific queues
+3. **Handoff Creation**: Agents create handoffs for other agents, including the project name
 4. **Status Tracking**: All handoff status is tracked in Redis
 
 ### Agent Integration Pattern
@@ -261,13 +264,13 @@ func (a *Agent) Start(ctx context.Context) error {
     // Register capabilities
     cap := handoff.AgentCapabilities{
         Name: "my-agent",
-        QueueName: "handoff:queue:my-agent",
+        QueueName: "handoff:project:my-project:queue:my-agent",
         MaxConcurrent: 3,
     }
     a.handoffAgent.RegisterAgent(cap)
     
     // Start consuming
-    return a.handoffAgent.ConsumeHandoffs(ctx, "my-agent", a.processHandoff)
+    return a.handoffAgent.ConsumeHandoffs(ctx, "my-project", "my-agent", a.processHandoff)
 }
 ```
 
@@ -281,7 +284,7 @@ func (a *Agent) Start(ctx context.Context) error {
 ### Agent Configuration
 - `name`: Agent identifier
 - `description`: Agent description
-- `queue_name`: Redis queue name
+- `queue_name`: Redis queue name (e.g., `handoff:project:my-project:queue:my-agent`)
 - `max_concurrent`: Max concurrent processors
 
 ### Routing Configuration
@@ -311,13 +314,15 @@ docker-compose up redis
 ```
 
 **High Queue Depth**
+
 ```bash
-# Check consumer health
-redis-cli ZCARD handoff:queue:agent-name
+# Check consumer health for a specific project
+redis-cli ZCARD handoff:project:my-project:queue:agent-name
 # Restart consumers or scale up
 ```
 
 **Processing Failures**
+
 ```bash
 # Check error logs
 grep ERROR /var/log/handoff-agent.log
@@ -332,10 +337,12 @@ Enable debug logging:
 ```
 
 Check Redis queues:
+
 ```bash
-redis-cli KEYS "handoff:*"
-redis-cli ZRANGE handoff:queue:golang-expert 0 -1
+redis-cli KEYS "handoff:project:*"
+redis-cli ZRANGE handoff:project:my-project:queue:golang-expert 0 -1
 ```
+
 
 ## Performance Tuning
 

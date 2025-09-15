@@ -119,33 +119,76 @@ workflow_registry:
 
 ## Knowledge Sharing Protocol
 
-### Handoff File Format
-```markdown
-# Agent Handoff: [From Agent] → [To Agent]
-Date: [ISO 8601 timestamp]
-Task: [Brief task description]
+Inter-agent communication is managed by a Redis-based handoff system with **built-in agent execution**. Instead of creating markdown files, agents construct a JSON payload conforming to the **Unified Handoff Schema** and publish it to a specific agent's queue in Redis.
 
-## Context
-- Project: [project name]
-- Previous work: [summary of what was done]
-- Related files: [list of relevant files]
+The enhanced `agent-manager` provides multiple execution modes:
+- **Built-in Agent Execution**: Native Go implementations with tool-agnostic strategies
+- **Tool Detection**: Automatic detection and use of Claude Code, Cursor, VS Code, and development tools
+- **Script Fallback**: Compatible with existing run-agent.sh workflows
+- **Zero Configuration**: No project setup required - works anywhere immediately
 
-## Requirements
-- [Specific requirement 1]
-- [Specific requirement 2]
+### Handoff Message Format
+A handoff is a JSON object with the following structure, which is pushed to a Redis queue for the target agent.
 
-## Technical Details
-[Relevant technical analysis and considerations]
-
-## Artifacts
-- Created: [list of new files]
-- Modified: [list of changed files]
-- Reviewed: [list of analyzed files]
-
-## Next Steps
-1. [Specific action for receiving agent]
-2. [Additional recommended actions]
+```json
+{
+  "metadata": {
+    "from_agent": "string",
+    "to_agent": "string",
+    "timestamp": "datetime",
+    "task_context": "string",
+    "priority": "low|normal|high|critical",
+    "handoff_id": "string"
+  },
+  "content": {
+    "summary": "string",
+    "requirements": ["string"],
+    "artifacts": {
+      "created": ["string"],
+      "modified": ["string"],
+      "reviewed": ["string"]
+    },
+    "technical_details": {},
+    "next_steps": ["string"]
+  },
+  "status": "pending|processing|completed|failed",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
 ```
+
+### Enhanced Execution Modes
+
+The agent-manager now supports multiple execution modes for optimal flexibility:
+
+#### 1. Built-in Agent Execution (`--mode executor`)
+```bash
+# Direct agent execution with built-in intelligence
+./agent-manager --mode executor --agent project-manager --payload-file task.json
+```
+- Native Go implementations for core agents (project-manager, architecture-analyzer)
+- Real project analysis and intelligent recommendations
+- No external dependencies required
+
+#### 2. Tool Detection Strategy (Default)
+- Automatic detection of available development tools
+- Priority-based selection: `claude-code > cursor > vscode > language-tools`
+- Project-aware execution with proper working directories
+- Smart fallbacks when primary tools unavailable
+
+#### 3. Script Fallback Strategy
+- Maintains compatibility with existing `run-agent.sh` scripts
+- Automatic discovery of project-specific or global scripts  
+- Seamless migration path from legacy workflows
+
+#### 4. Hybrid Mode (`--mode hybrid`)
+```bash
+# Best of all strategies with intelligent selection
+./agent-manager --mode hybrid
+```
+- Combines all execution strategies with smart routing
+- Zero configuration required for any project
+- Automatic tool detection and fallback handling
 
 ## Agent Types and Responsibilities
 

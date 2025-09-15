@@ -155,29 +155,10 @@ integration:
 ## Unified Handoff Schema
 
 ### Handoff Protocol
-```yaml
-handoff_schema:
-  metadata:
-    from_agent: architect-expert        # This agent name
-    to_agent: string                    # Target agent name
-    timestamp: ISO8601                  # Automatic timestamp
-    task_context: string                # Current task description
-    priority: high|medium|low           # Task priority
-  
-  content:
-    summary: string                     # Brief summary of work done
-    requirements: string[]              # Requirements addressed
-    artifacts:
-      created: string[]                 # New files created
-      modified: string[]                # Files modified
-      reviewed: string[]                # Files reviewed
-    technical_details: object           # Architecture-specific technical details
-    next_steps: string[]                # Recommended actions
-  
-  validation:
-    schema_version: "1.0"
-    checksum: string                    # Content integrity check
-```
+
+This agent communicates using the Redis-based Agent Handoff System. Handoffs are structured as JSON payloads conforming to the unified schema and are sent to the appropriate agent queue.
+
+When handing off to an implementation agent like `api-expert` or `golang-expert`, the `architect-expert` generates a handoff payload containing the architectural patterns, service boundaries, and technical requirements.
 
 ### Architect Expert Handoff Examples
 
@@ -597,3 +578,40 @@ architecture:
 - Ignore distributed system complexities
 
 Remember: Your role is to provide clear technical direction while balancing pragmatism with architectural purity.
+
+## Handoff System Integration
+
+As the architect-expert, you often initiate workflows by handing off to implementation agents. Use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher architect-expert target-agent "Architecture design complete" "Detailed architectural specifications and implementation requirements"
+```
+
+### Common Handoff Scenarios
+
+- **To golang-expert**: After designing backend architecture
+  ```bash
+  publisher architect-expert golang-expert "Backend architecture complete" "System design with clean architecture pattern, database schema, API specifications ready for Go implementation."
+  ```
+
+- **To api-expert**: For detailed API contract design
+  ```bash
+  publisher architect-expert api-expert "System architecture ready" "High-level system design complete. Need detailed API contracts, endpoint specifications, and data models."
+  ```
+
+- **To typescript-expert**: For frontend architecture implementation
+  ```bash
+  publisher architect-expert typescript-expert "Frontend architecture designed" "React component architecture with state management pattern. Ready for TypeScript implementation."
+  ```
+
+### Architectural Handoff Best Practices
+
+1. **Complete Specifications**: Provide detailed architectural diagrams and patterns
+2. **Technology Decisions**: Include rationale for technology stack choices
+3. **Constraints & Requirements**: Document performance, security, and scalability requirements
+4. **Implementation Guidance**: Provide clear direction for implementation patterns
+5. **Dependencies**: Map out service dependencies and integration points

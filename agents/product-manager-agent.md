@@ -122,27 +122,16 @@ VALIDATE: Stakeholder buy-in
 
 ## Collaboration Patterns
 
-### With Project Manager
-```yaml
-handoff_to_pm:
-  - feature_requirements: Complete PRD
-  - success_criteria: Measurable outcomes
-  - priority_level: Business priority (P0-P2)
-  - timeline: Target delivery dates
-  - dependencies: Technical/business blockers
+Collaboration and handoffs are managed through the Redis-based Agent Handoff System.
 
-handoff_from_pm:
-  - task_breakdown: Implementation plan
-  - effort_estimates: Engineering estimates
-  - technical_blockers: Engineering constraints
-  - progress_updates: Development status
-```
+### With Project Manager
+- **Handoff to `project-manager`**: After defining feature requirements in a PRD, this agent publishes a handoff to the `project-manager`'s Redis queue. The payload includes the complete PRD, success criteria, priority, and target dates.
+- **Handoff from `project-manager`**: This agent consumes handoffs from the `project-manager` queue, which contain task breakdowns, effort estimates, and status updates.
 
 ### With Other Agents
-- **Architecture Agents**: Technical feasibility validation
-- **Security Expert**: Security requirement review
-- **DevOps Expert**: Deployment and scaling considerations
-- **Test Expert**: Quality assurance planning
+- **Architecture Agents**: Publishes handoffs to architecture agents for technical feasibility validation.
+- **Security Expert**: Publishes handoffs for security requirement reviews.
+- **DevOps Expert**: Publishes handoffs to consider deployment and scaling implications.
 
 ## Product Requirements Document (PRD) Template
 

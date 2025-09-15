@@ -1,0 +1,129 @@
+graph TB
+    subgraph "Client Layer"
+        WebApp[Web Application]
+        MobileApp[Mobile App]
+        ThirdParty[Third-party Services]
+    end
+    
+    subgraph "API Gateway Layer"
+        Gateway[API Gateway]
+        LoadBalancer[Load Balancer]
+        RateLimit[Rate Limiter]
+    end
+    
+    subgraph "Authentication Services"
+        AuthAPI[Authentication API]
+        UserAPI[User Management API]
+        SecurityAPI[Security API]
+    end
+    
+    subgraph "Middleware Layer"
+        JWTMiddleware[JWT Middleware]
+        CORSMiddleware[CORS Middleware]
+        LoggingMiddleware[Logging Middleware]
+    end
+    
+    subgraph "Business Logic Layer"
+        AuthService[Authentication Service]
+        UserService[User Service]
+        TokenService[Token Service]
+        SecurityService[Security Service]
+    end
+    
+    subgraph "Data Access Layer"
+        UserRepo[User Repository]
+        TokenRepo[Token Repository]
+        AuditRepo[Audit Repository]
+        SecurityRepo[Security Repository]
+    end
+    
+    subgraph "Infrastructure Layer"
+        PostgreSQL[(PostgreSQL Database)]
+        Redis[(Redis Cache)]
+        Monitoring[Prometheus Metrics]
+        Logging[Structured Logs]
+    end
+    
+    subgraph "External Services"
+        EmailService[Email Service]
+        SMSService[SMS Service]
+        AlertManager[Alert Manager]
+    end
+    
+    %% Client connections
+    WebApp --> LoadBalancer
+    MobileApp --> LoadBalancer
+    ThirdParty --> LoadBalancer
+    
+    %% Gateway layer
+    LoadBalancer --> Gateway
+    Gateway --> RateLimit
+    RateLimit --> AuthAPI
+    RateLimit --> UserAPI
+    RateLimit --> SecurityAPI
+    
+    %% API to Middleware
+    AuthAPI --> JWTMiddleware
+    UserAPI --> JWTMiddleware
+    SecurityAPI --> JWTMiddleware
+    
+    %% Middleware chain
+    JWTMiddleware --> CORSMiddleware
+    CORSMiddleware --> LoggingMiddleware
+    
+    %% Business Logic connections
+    LoggingMiddleware --> AuthService
+    LoggingMiddleware --> UserService
+    LoggingMiddleware --> SecurityService
+    
+    %% Service interactions
+    AuthService --> TokenService
+    AuthService --> UserService
+    AuthService --> SecurityService
+    
+    %% Data Access
+    AuthService --> TokenRepo
+    UserService --> UserRepo
+    SecurityService --> SecurityRepo
+    SecurityService --> AuditRepo
+    
+    %% Infrastructure connections
+    UserRepo --> PostgreSQL
+    TokenRepo --> Redis
+    AuditRepo --> PostgreSQL
+    SecurityRepo --> PostgreSQL
+    
+    %% Monitoring and Logging
+    AuthService --> Monitoring
+    UserService --> Monitoring
+    TokenService --> Monitoring
+    SecurityService --> Monitoring
+    
+    AuthService --> Logging
+    UserService --> Logging
+    TokenService --> Logging
+    SecurityService --> Logging
+    
+    %% External integrations
+    SecurityService --> EmailService
+    SecurityService --> SMSService
+    SecurityService --> AlertManager
+    
+    %% Styling
+    classDef client fill:#e1f5fe
+    classDef gateway fill:#f3e5f5
+    classDef api fill:#e8f5e8
+    classDef middleware fill:#fff3e0
+    classDef service fill:#fce4ec
+    classDef repo fill:#f1f8e9
+    classDef infra fill:#e3f2fd
+    classDef external fill:#fafafa
+    
+    class WebApp,MobileApp,ThirdParty client
+    class Gateway,LoadBalancer,RateLimit gateway
+    class AuthAPI,UserAPI,SecurityAPI api
+    class JWTMiddleware,CORSMiddleware,LoggingMiddleware middleware
+    class AuthService,UserService,TokenService,SecurityService service
+    class UserRepo,TokenRepo,AuditRepo,SecurityRepo repo
+    class PostgreSQL,Redis,Monitoring,Logging infra
+    class EmailService,SMSService,AlertManager external

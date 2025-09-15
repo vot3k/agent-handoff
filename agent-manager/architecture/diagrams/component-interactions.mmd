@@ -1,0 +1,121 @@
+sequenceDiagram
+    participant C as Client
+    participant GW as API Gateway
+    participant AM as Auth Middleware
+    participant AS as Auth Service
+    participant US as User Service
+    participant TS as Token Service
+    participant SS as Security Service
+    participant DB as PostgreSQL
+    participant R as Redis Cache
+    participant AL as Audit Logger
+    
+    Note over C,AL: Complete Authentication Flow with Security
+    
+    %% Login Flow
+    C->>GW: POST /auth/login {email, password}
+    GW->>AM: Rate limit check
+    AM->>SS: Check rate limits
+    SS->>R: Get rate limit counters
+    R-->>SS: Current counters
+    SS-->>AM: Rate limit OK
+    AM->>AS: Process login request
+    
+    AS->>US: Validate user credentials
+    US->>DB: SELECT user WHERE email = ?
+    DB-->>US: User record
+    US->>US: Verify password hash
+    US-->>AS: User validated
+    
+    AS->>SS: Check security policies
+    SS->>DB: Check failed attempts
+    DB-->>SS: Attempt history
+    SS-->>AS: Security check passed
+    
+    AS->>TS: Generate JWT tokens
+    TS->>TS: Create access token (15min)
+    TS->>TS: Create refresh token (7d)
+    TS->>R: Store refresh token
+    R-->>TS: Token stored
+    TS-->>AS: Token pair created
+    
+    AS->>AL: Log successful login
+    AL->>DB: INSERT INTO audit_logs
+    AS-->>GW: {access_token, refresh_token, user_info}
+    GW-->>C: 200 OK with tokens
+    
+    Note over C,AL: Protected Resource Access
+    
+    %% Token Validation Flow
+    C->>GW: GET /api/protected [Authorization: Bearer JWT]
+    GW->>AM: Extract and validate JWT
+    AM->>TS: Validate token
+    TS->>TS: Verify signature & expiration
+    TS->>R: Check blacklist
+    R-->>TS: Token not blacklisted
+    TS-->>AM: Token valid + claims
+    AM->>AM: Set user context
+    AM->>GW: Continue to protected resource
+    GW-->>C: Protected resource data
+    
+    Note over C,AL: Token Refresh Flow
+    
+    %% Refresh Token Flow
+    C->>GW: POST /auth/refresh [refresh_token]
+    GW->>AS: Process refresh request
+    AS->>TS: Validate refresh token
+    TS->>R: GET refresh token data
+    R-->>TS: Token metadata
+    TS->>TS: Validate token & expiration
+    TS-->>AS: Refresh token valid
+    
+    AS->>TS: Generate new token pair
+    TS->>TS: Create new access token
+    TS->>TS: Create new refresh token
+    TS->>R: Store new refresh token
+    TS->>R: Invalidate old refresh token
+    R-->>TS: Tokens updated
+    TS-->>AS: New token pair
+    
+    AS->>AL: Log token refresh
+    AL->>DB: INSERT INTO audit_logs
+    AS-->>GW: New tokens
+    GW-->>C: 200 OK with new tokens
+    
+    Note over C,AL: Logout Flow
+    
+    %% Logout Flow
+    C->>GW: POST /auth/logout [access_token, refresh_token]
+    GW->>AS: Process logout
+    AS->>TS: Invalidate tokens
+    TS->>R: Add JWT to blacklist
+    TS->>R: Remove refresh token
+    R-->>TS: Tokens invalidated
+    TS-->>AS: Logout successful
+    
+    AS->>AL: Log logout event
+    AL->>DB: INSERT INTO audit_logs
+    AS-->>GW: Logout confirmed
+    GW-->>C: 200 OK logout successful
+    
+    Note over C,AL: Security Event Handling
+    
+    %% Failed Login Attempt
+    C->>GW: POST /auth/login {invalid_credentials}
+    GW->>AS: Process login
+    AS->>US: Validate credentials
+    US->>DB: Check user
+    DB-->>US: User found
+    US->>US: Password mismatch
+    US-->>AS: Authentication failed
+    
+    AS->>SS: Record failed attempt
+    SS->>DB: INSERT INTO security_events
+    SS->>R: Increment failure counter
+    R-->>SS: Updated counter
+    SS->>SS: Check if threshold exceeded
+    SS->>AL: Log security event
+    AL->>DB: INSERT INTO audit_logs
+    SS-->>AS: Security action taken
+    AS-->>GW: 401 Unauthorized
+    GW-->>C: Authentication failed

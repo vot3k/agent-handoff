@@ -289,34 +289,20 @@ input_expectations:
     - existing_code             # Current codebase
 ```
 
-### Output Deliverables
-```yaml
-deliverables:
-  implementation:
-    handlers: {location: "handlers/", includes: ["HTTP handlers", "Request validation", "Response formatting"]}
-    services: {location: "services/", includes: ["Business logic", "Data processing", "External integrations"]}
-    models: {location: "models/", includes: ["Data structures", "Validation rules", "Database models"]}
-  
-  handoffs:
-    to_test_expert:
-      file: ".claude/handoffs/[timestamp]-golang-to-test.md"
-      contains: [implemented_features, test_coverage_status, integration_points]
-    
-    to_devops_expert:
-      file: ".claude/handoffs/[timestamp]-golang-to-devops.md"
-      contains: [build_requirements, deployment_configuration, environment_variables]
-```
-
 ## Handoff Protocol
 
-Uses unified schema with agent-specific `technical_details`:
-```yaml
-metadata: {from_agent, to_agent, timestamp, task_context, priority}
-content: {summary, requirements[], artifacts{created[], modified[], reviewed[]}, technical_details, next_steps[]}
-validation: {schema_version: "1.0", checksum}
-```
+This agent uses the Redis-based Agent Handoff System for all inter-agent communication.
+
+### Receiving Handoffs
+- The `golang-expert` consumes tasks from its dedicated Redis queue: `handoff:queue:golang-expert`.
+- Handoffs from `api-expert` or `architect-expert` contain API contracts, architectural patterns, and security requirements.
+
+### Publishing Handoffs
+- **To test-expert**: After implementing features, a handoff is published to the `test-expert` queue. The payload includes details on the implemented features, integration points, and current test coverage status.
+- **To devops-expert**: For deployment tasks, a handoff is published to the `devops-expert` queue, containing build requirements, deployment configurations, and necessary environment variables.
 
 ### Golang Technical Details
+Uses the unified schema with agent-specific `technical_details`:
 ```yaml
 technical_details:
   handlers: string[]       # HTTP handlers implemented
@@ -326,22 +312,6 @@ technical_details:
   middlewares: string[]    # Middleware functions created
   test_coverage: number    # Test coverage percentage
   benchmarks: object       # Performance benchmark results
-```
-
-### Communication via Files
-```yaml
-file_based_integration:
-  reads_from:
-    - specs/api-design.md              # API specifications
-    - .claude/handoffs/*-to-golang.md  # Incoming handoffs
-    - architecture/backend.md          # Backend architecture
-    - security/requirements.md         # Security requirements
-  
-  writes_to:
-    - cmd/                            # Application code
-    - internal/                       # Internal packages
-    - .claude/handoffs/golang-to-*.md # Outgoing handoffs
-    - docs/backend-implementation.md   # Implementation notes
 ```
 
 ## Backend-Specific Patterns
@@ -536,3 +506,40 @@ bench:
 ```
 
 Remember: Your role is to implement robust, efficient Go code following idiomatic patterns and best practices. Always write actual code implementation unless explicitly told to only plan or design.
+
+## Handoff System Integration
+
+When your work requires follow-up by another agent, use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher golang-expert target-agent "Summary of work completed" "Detailed context and requirements for the receiving agent"
+```
+
+### Common Handoff Scenarios
+
+- **To test-expert**: After implementing features that need comprehensive testing
+  ```bash
+  publisher golang-expert test-expert "Go implementation complete" "Feature X implemented with unit tests. Ready for integration and performance testing."
+  ```
+
+- **To devops-expert**: After completing implementation that needs deployment
+  ```bash
+  publisher golang-expert devops-expert "Backend service ready" "Go HTTP service with database integration complete. Ready for containerization and deployment setup."
+  ```
+
+- **To security-expert**: For security review of sensitive implementations
+  ```bash
+  publisher golang-expert security-expert "Authentication system complete" "JWT auth implementation finished. Ready for security audit and penetration testing."
+  ```
+
+### Handoff Best Practices
+
+1. **Clear Summary**: Provide a concise summary of work completed
+2. **Detailed Context**: Include specific technical details the receiving agent needs
+3. **Artifacts**: Mention key files created or modified
+4. **Next Steps**: Suggest specific actions for the receiving agent
+5. **Dependencies**: Note any prerequisites or blockers

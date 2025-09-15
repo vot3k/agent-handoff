@@ -354,55 +354,24 @@ flowchart TD
 
 ## Handoff Protocol
 
+This agent uses the Redis-based Agent Handoff System for all inter-agent communication.
+
 ### To Architecture Analyzer
-```yaml
-handoff_to_analyzer:
-  technical_details:
-    package_structure: object         # Complete package organization
-    interface_design: object          # Interface patterns and relationships
-    concurrency_patterns: object      # Goroutine and channel usage
-    performance_characteristics: object # Bottlenecks and optimizations
-    go_idioms: string[]               # Go-specific patterns detected
-    module_dependencies: object       # go.mod analysis results
-    test_architecture: object         # Test organization and coverage
-    architectural_violations: string[] # Deviations from Go best practices
-    optimization_opportunities: string[] # Performance and design improvements
-```
+Publishes a handoff payload to the `architecture-analyzer` queue. The `technical_details` of the payload include:
+- `package_structure`: Complete package organization
+- `interface_design`: Interface patterns and relationships
+- `concurrency_patterns`: Goroutine and channel usage
+- `go_idioms`: Go-specific patterns detected
+- `module_dependencies`: `go.mod` analysis results
 
 ### From Architecture Analyzer
-```yaml
-handoff_from_analyzer:
-  receives:
-    - project_context: "Overall system architecture context"
-    - analysis_scope: "Specific Go components to analyze"
-    - performance_requirements: "Performance criteria and constraints"
-    - integration_points: "External system connections"
-    - architectural_constraints: "Go-specific architectural guidelines"
-```
+Consumes handoff payloads from the `architecture-analyzer` queue, which provide overall project context and specify the scope of the Go components to be analyzed.
 
 ### To Architect Expert
-```yaml
-architectural_concerns:
-  file: ".claude/handoffs/[timestamp]-go-arch-to-architect.md"
-  contains: [go_antipatterns, scalability_issues, design_violations, adr_recommendations]
-  triggers: ["interface design violations", "concurrency safety issues", "performance bottlenecks"]
-```
-
-### From Architect Expert
-```yaml
-architectural_decisions:
-  file: ".claude/handoffs/[timestamp]-architect-to-go-arch.md"
-  contains: [go_specific_adrs, package_design_decisions, concurrency_guidelines, performance_standards]
-  triggers: ["new Go architecture ADR", "package restructuring decision", "performance requirements updated"]
-```
+When significant architectural issues are found (e.g., anti-patterns, scalability concerns), a handoff is published to the `architect-expert` queue with recommendations for a formal ADR.
 
 ### To Tech Writer
-```yaml
-documentation_handoff:
-  file: ".claude/handoffs/[timestamp]-go-arch-to-tech-writer.md"
-  contains: [go_package_documentation, interface_guides, concurrency_examples, performance_runbooks]
-  triggers: ["Go analysis complete", "new patterns documented", "developer guides needed"]
-```
+Publishes handoffs to the `tech-writer` queue containing Go package documentation, interface guides, and concurrency examples for creating developer documentation.
 
 ## Performance Analysis
 

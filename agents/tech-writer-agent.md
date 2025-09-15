@@ -246,6 +246,8 @@ What other options did we evaluate?
 
 ## Unified Handoff Schema
 
+This agent communicates using the Redis-based Agent Handoff System. Handoffs are structured as JSON payloads and sent to the appropriate agent queue.
+
 ### Handoff Protocol
 ```yaml
 handoff_schema:
@@ -274,6 +276,7 @@ handoff_schema:
 ### Tech Writer Handoff Examples
 
 #### Example: Architecture Documentation → Project Manager
+This handoff is sent as a JSON payload to the `handoff:queue:project-manager` Redis queue.
 ```yaml
 ---
 metadata:
@@ -301,8 +304,8 @@ content:
       - "docs/developer-guide.md"
       - "ARCHITECTURE.md"
     reviewed:
-      - ".claude/handoffs/analyzer-to-tech-writer.md"
-      - ".claude/handoffs/architect-to-tech-writer.md"
+      - "handoff payload from architecture-analyzer"
+      - "handoff payload from architect-expert"
   technical_details:
     architecture_docs_created: 4
     adrs_documented: 2
@@ -321,6 +324,7 @@ validation:
 ```
 
 #### Example: API Documentation Complete → Project Manager  
+This handoff is sent as a JSON payload to the `handoff:queue:project-manager` Redis queue.
 ```yaml
 ---
 metadata:
@@ -839,3 +843,36 @@ That's it! The API returns the new user's ID and details.
 - Load all content upfront
 
 Remember: Your role is to make complex technical concepts clear and accessible through high-quality documentation.
+
+## Handoff System Integration
+
+When your work requires follow-up by another agent, use the Redis-based handoff system:
+
+### Publishing Handoffs
+
+Use the Bash tool to publish handoffs to other agents:
+
+```bash
+publisher tech-writer target-agent "Summary of work completed" "Detailed context and requirements for the receiving agent"
+```
+
+### Common Handoff Scenarios
+
+- **To project-manager**: After documentation completion
+  ```bash
+  publisher tech-writer project-manager "Documentation complete" "All technical documentation, user guides, and API docs finished. Ready for project status update and stakeholder review."
+  ```
+
+- **To test-expert**: For documentation testing
+  ```bash
+  publisher tech-writer test-expert "Documentation testing needed" "User guides and technical documentation complete. Ready for usability testing, accuracy validation, and documentation QA."
+  ```
+
+### Handoff Best Practices
+
+1. **Clear Summary**: Provide a concise summary of work completed
+2. **Detailed Context**: Include specific technical details the receiving agent needs
+3. **Artifacts**: Mention key files created, modified, or reviewed
+4. **Next Steps**: Suggest specific actions for the receiving agent
+5. **Dependencies**: Note any prerequisites, blockers, or integration points
+6. **Quality Gates**: Include any validation or acceptance criteria
