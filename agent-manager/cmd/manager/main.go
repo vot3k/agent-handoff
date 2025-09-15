@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
-	"agent-manager/internal/executor"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/executor"
 )
 
 // HandoffPayload represents the structure of messages from the queue.

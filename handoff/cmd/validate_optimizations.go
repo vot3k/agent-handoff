@@ -10,8 +10,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/claude-agent/handoff"
 )
 
 func main() {
@@ -54,7 +52,8 @@ func main() {
 		os.Exit(1)
 	} else {
 		fmt.Println("\n⚠️ VALIDATION PASSED WITH WARNINGS - Review recommendations")
-		os.Exit(0)
+		// Exit with code 1 for warnings to indicate non-production ready state
+		os.Exit(1)
 	}
 }
 
@@ -78,7 +77,7 @@ func printSummary(report *handoff.ValidationReport) {
 	fmt.Printf("🏆 Individual Test Results\n")
 	fmt.Printf("=========================\n")
 	for _, result := range report.PerformanceGains {
-		fmt.Printf("% -20s: %.2fx improvement (%.0f ops vs %.0f ops)\n",
+		fmt.Printf("%-20s: %.2fx improvement (%.0f ops vs %.0f ops)\n",
 			result.TestName,
 			result.ImprovementRatio,
 			float64(result.OptimizedOps),

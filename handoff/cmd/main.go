@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/claude-agent/handoff"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/vot3k/agent-handoff/handoff"
 )
 
 var (

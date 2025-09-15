@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"agent-manager/internal/middleware"
-	"agent-manager/internal/models"
-	"agent-manager/internal/service"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/middleware"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/models"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/service"
 )
 
 // HandoffHandler handles HTTP requests for handoff operations
@@ -168,7 +168,7 @@ func (h *HandoffHandler) GetQueueDepth(w http.ResponseWriter, r *http.Request) {
 // writeError writes an error response in a consistent format
 func (h *HandoffHandler) writeError(w http.ResponseWriter, r *http.Request, statusCode int, message string, err error) {
 	requestID := middleware.GetRequestID(r.Context())
-	
+
 	response := map[string]interface{}{
 		"error":      message,
 		"request_id": requestID,

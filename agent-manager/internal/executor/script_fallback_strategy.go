@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"agent-manager/internal/tools"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/tools"
 )
 
 // ScriptFallbackStrategy executes agents using traditional run-agent.sh scripts
@@ -55,11 +55,11 @@ func (s *ScriptFallbackStrategy) Execute(ctx context.Context, req AgentExecution
 
 	// Execute the script
 	cmd := exec.CommandContext(ctx, s.scriptPath, req.AgentName, req.Payload)
-	
+
 	// Set working directory and environment
 	scriptDir := filepath.Dir(s.scriptPath)
 	cmd.Dir = scriptDir
-	
+
 	env := os.Environ()
 	for key, value := range req.Environment {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
@@ -115,7 +115,7 @@ func (s *ScriptFallbackStrategy) findRunAgentScript(projectPath string) (string,
 	execPath, err := os.Executable()
 	if err == nil {
 		execDir := filepath.Dir(execPath)
-		
+
 		// Try same directory as executable
 		scriptPath := filepath.Join(execDir, "run-agent.sh")
 		if _, err := os.Stat(scriptPath); err == nil {
@@ -135,9 +135,9 @@ func (s *ScriptFallbackStrategy) findRunAgentScript(projectPath string) (string,
 
 	// Strategy 4: Search common locations
 	searchPaths := []string{
-		"./run-agent.sh",                                    // Current directory
-		"./agent-manager/run-agent.sh",                      // Agent-manager subdirectory
-		"../agent-manager/run-agent.sh",                     // Parent then agent-manager
+		"./run-agent.sh",                // Current directory
+		"./agent-manager/run-agent.sh",  // Agent-manager subdirectory
+		"../agent-manager/run-agent.sh", // Parent then agent-manager
 		"/Users/jimmy/Dev/ai-platforms/agent-handoff/agent-manager/run-agent.sh", // Absolute fallback
 	}
 
@@ -278,7 +278,7 @@ func (s *ScriptFallbackStrategy) GetAvailableScripts() []string {
 
 	searchPaths := []string{
 		"./run-agent.sh",
-		"./agent-manager/run-agent.sh", 
+		"./agent-manager/run-agent.sh",
 		"../agent-manager/run-agent.sh",
 		"/Users/jimmy/Dev/ai-platforms/agent-handoff/agent-manager/run-agent.sh",
 	}
@@ -291,7 +291,7 @@ func (s *ScriptFallbackStrategy) GetAvailableScripts() []string {
 	// Add executable-relative paths
 	if execPath, err := os.Executable(); err == nil {
 		execDir := filepath.Dir(execPath)
-		searchPaths = append(searchPaths, 
+		searchPaths = append(searchPaths,
 			filepath.Join(execDir, "run-agent.sh"),
 			filepath.Join(execDir, "..", "agent-manager", "run-agent.sh"))
 	}

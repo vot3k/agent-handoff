@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"agent-manager/internal/tools"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/tools"
 )
 
 // ToolDetectionStrategy executes agents using detected tools
@@ -60,11 +60,11 @@ func (t *ToolDetectionStrategy) executeGoExpert(ctx context.Context, req AgentEx
 	if t.toolSet.Has("claude") {
 		return t.executeClaudeTask(ctx, req, "golang-expert")
 	}
-	
+
 	if t.toolSet.Has("cursor") {
 		return t.executeCursorTask(ctx, req)
 	}
-	
+
 	if t.toolSet.Has("go") {
 		return t.executeGoDirectTask(ctx, req)
 	}
@@ -181,7 +181,7 @@ func (t *ToolDetectionStrategy) executeCursorTask(ctx context.Context, req Agent
 	log.Printf("📝 Executing Cursor task")
 
 	cursorTool := t.toolSet.Available["cursor"]
-	
+
 	// Create a basic cursor command (this would need to be customized based on Cursor's API)
 	cmd := exec.CommandContext(ctx, cursorTool.Path, "--wait", req.ProjectPath)
 	SetupCommand(cmd, req)
@@ -214,12 +214,12 @@ func (t *ToolDetectionStrategy) executeGoDirectTask(ctx context.Context, req Age
 		commands = append(commands, "go test ./...")
 		artifacts = append(artifacts, "Go tests executed")
 	}
-	
+
 	if strings.Contains(req.Summary, "build") || strings.Contains(req.Summary, "Build") {
 		commands = append(commands, "go build -v ./...")
 		artifacts = append(artifacts, "Go build completed")
 	}
-	
+
 	if strings.Contains(req.Summary, "mod") || strings.Contains(req.Summary, "dependencies") {
 		commands = append(commands, "go mod tidy")
 		artifacts = append(artifacts, "Go modules updated")
@@ -270,9 +270,14 @@ func (t *ToolDetectionStrategy) executeGoTest(ctx context.Context, req AgentExec
 	success := err == nil
 
 	return &AgentExecutionResponse{
-		Success:   success,
-		Output:    string(output),
-		Error:     func() string { if err != nil { return err.Error() }; return "" }(),
+		Success: success,
+		Output:  string(output),
+		Error: func() string {
+			if err != nil {
+				return err.Error()
+			}
+			return ""
+		}(),
 		Artifacts: []string{"Go test results"},
 	}, nil
 }
@@ -287,9 +292,14 @@ func (t *ToolDetectionStrategy) executeNpmTest(ctx context.Context, req AgentExe
 	success := err == nil
 
 	return &AgentExecutionResponse{
-		Success:   success,
-		Output:    string(output),
-		Error:     func() string { if err != nil { return err.Error() }; return "" }(),
+		Success: success,
+		Output:  string(output),
+		Error: func() string {
+			if err != nil {
+				return err.Error()
+			}
+			return ""
+		}(),
 		Artifacts: []string{"npm test results"},
 	}, nil
 }
@@ -310,15 +320,15 @@ func (t *ToolDetectionStrategy) executeGenericAgent(ctx context.Context, req Age
 // Additional execution methods for other agents...
 func (t *ToolDetectionStrategy) executeGenericAPITask(ctx context.Context, req AgentExecutionRequest) (*AgentExecutionResponse, error) {
 	return &AgentExecutionResponse{
-		Success: true,
-		Output:  "API analysis completed using available tools",
+		Success:   true,
+		Output:    "API analysis completed using available tools",
 		Artifacts: []string{"API specification reviewed", "Endpoint documentation"},
 	}, nil
 }
 
 func (t *ToolDetectionStrategy) executeDockerTask(ctx context.Context, req AgentExecutionRequest) (*AgentExecutionResponse, error) {
 	dockerTool := t.toolSet.Available["docker"]
-	
+
 	// Basic Docker operations
 	var commands []string
 	if strings.Contains(req.Summary, "build") {
@@ -341,7 +351,7 @@ func (t *ToolDetectionStrategy) executeDockerTask(ctx context.Context, req Agent
 		cmdOutput, err := cmd.CombinedOutput()
 		output.WriteString(fmt.Sprintf("$ %s\n", cmdStr))
 		output.Write(cmdOutput)
-		
+
 		if err != nil {
 			return &AgentExecutionResponse{
 				Success: false,
@@ -360,8 +370,8 @@ func (t *ToolDetectionStrategy) executeDockerTask(ctx context.Context, req Agent
 
 func (t *ToolDetectionStrategy) executeGenericDevOpsTask(ctx context.Context, req AgentExecutionRequest) (*AgentExecutionResponse, error) {
 	return &AgentExecutionResponse{
-		Success: true,
-		Output:  "DevOps analysis completed",
+		Success:   true,
+		Output:    "DevOps analysis completed",
 		Artifacts: []string{"Infrastructure reviewed", "Deployment configurations checked"},
 	}, nil
 }
@@ -369,7 +379,7 @@ func (t *ToolDetectionStrategy) executeGenericDevOpsTask(ctx context.Context, re
 func (t *ToolDetectionStrategy) executeNodeTask(ctx context.Context, req AgentExecutionRequest) (*AgentExecutionResponse, error) {
 	var tool tools.ToolInfo
 	var exists bool
-	
+
 	if tool, exists = t.toolSet.Available["yarn"]; !exists {
 		tool, exists = t.toolSet.Available["npm"]
 		if !exists {
@@ -384,9 +394,14 @@ func (t *ToolDetectionStrategy) executeNodeTask(ctx context.Context, req AgentEx
 	success := err == nil
 
 	return &AgentExecutionResponse{
-		Success:   success,
-		Output:    string(output),
-		Error:     func() string { if err != nil { return err.Error() }; return "" }(),
+		Success: success,
+		Output:  string(output),
+		Error: func() string {
+			if err != nil {
+				return err.Error()
+			}
+			return ""
+		}(),
 		Artifacts: []string{"Node.js build completed"},
 	}, nil
 }
@@ -421,14 +436,14 @@ func (t *ToolDetectionStrategy) parseClaudeOutput(output string) []NextHandoff {
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// Pattern: "Handing off to <agent>: <description>"
 		if strings.Contains(line, "Handing off to") || strings.Contains(line, "handoff to") {
 			parts := strings.Split(line, ":")
 			if len(parts) >= 2 {
 				agentPart := strings.TrimSpace(parts[0])
 				description := strings.TrimSpace(strings.Join(parts[1:], ":"))
-				
+
 				// Extract agent name
 				words := strings.Fields(agentPart)
 				for _, word := range words {

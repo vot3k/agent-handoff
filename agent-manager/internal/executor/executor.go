@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"agent-manager/internal/tools"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/tools"
 )
 
 // ExecutionMode defines different ways to execute agents
@@ -25,16 +25,16 @@ const (
 
 // AgentExecutionRequest contains all data needed to execute an agent
 type AgentExecutionRequest struct {
-	AgentName     string            `json:"agent_name"`
-	ProjectName   string            `json:"project_name"`
-	ProjectPath   string            `json:"project_path"`
-	Payload       string            `json:"payload"`
-	HandoffID     string            `json:"handoff_id"`
-	FromAgent     string            `json:"from_agent"`
-	Environment   map[string]string `json:"environment"`
-	TaskContext   string            `json:"task_context"`
-	Summary       string            `json:"summary"`
-	Requirements  []string          `json:"requirements"`
+	AgentName    string            `json:"agent_name"`
+	ProjectName  string            `json:"project_name"`
+	ProjectPath  string            `json:"project_path"`
+	Payload      string            `json:"payload"`
+	HandoffID    string            `json:"handoff_id"`
+	FromAgent    string            `json:"from_agent"`
+	Environment  map[string]string `json:"environment"`
+	TaskContext  string            `json:"task_context"`
+	Summary      string            `json:"summary"`
+	Requirements []string          `json:"requirements"`
 }
 
 // AgentExecutionResponse contains the result of agent execution
@@ -50,10 +50,10 @@ type AgentExecutionResponse struct {
 
 // NextHandoff represents a follow-up handoff to be created
 type NextHandoff struct {
-	ToAgent     string `json:"to_agent"`
-	Summary     string `json:"summary"`
-	Context     string `json:"context"`
-	Priority    string `json:"priority"`
+	ToAgent  string `json:"to_agent"`
+	Summary  string `json:"summary"`
+	Context  string `json:"context"`
+	Priority string `json:"priority"`
 }
 
 // ExecutionStrategy defines how to execute agents
@@ -99,7 +99,7 @@ func NewAgentExecutor(mode ExecutionMode) (*AgentExecutor, error) {
 // Execute runs an agent using the best available strategy
 func (e *AgentExecutor) Execute(ctx context.Context, req AgentExecutionRequest) (*AgentExecutionResponse, error) {
 	start := time.Now()
-	
+
 	log.Printf("🚀 Executing agent '%s' for project '%s'", req.AgentName, req.ProjectName)
 	log.Printf("📄 Task: %s", req.Summary)
 

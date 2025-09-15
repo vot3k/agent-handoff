@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"agent-manager/internal/config"
-	"agent-manager/internal/models"
-	"agent-manager/internal/repository"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/config"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/models"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/repository"
 
 	"github.com/google/uuid"
 )

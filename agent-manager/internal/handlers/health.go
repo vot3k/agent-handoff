@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"agent-manager/internal/repository"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/repository"
 )
 
 // HealthHandler handles health check endpoints

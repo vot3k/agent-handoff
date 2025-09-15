@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"agent-manager/internal/models"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/models"
 )
 
 // HandoffServiceInterface defines the interface for handoff operations

@@ -1,4 +1,4 @@
-module agent-manager
+module github.com/vot3k/agent-handoff/agent-manager
 
 go 1.25.1
 

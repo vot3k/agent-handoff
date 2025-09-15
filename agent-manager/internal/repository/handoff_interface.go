@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"agent-manager/internal/models"
 	"context"
+
+	"github.com/vot3k/agent-handoff/agent-manager/internal/models"
 )
 
 // HandoffRepositoryInterface defines the interface for handoff repository operations

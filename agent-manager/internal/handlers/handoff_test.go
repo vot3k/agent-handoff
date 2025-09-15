@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"agent-manager/internal/models"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/models"
 )
 
 // MockHandoffService is a mock implementation of the handoff service for testing
@@ -129,12 +129,12 @@ func TestHandoffHandler_CreateHandoff(t *testing.T) {
 		{
 			name: "valid handoff creation",
 			payload: models.CreateHandoffRequest{
-				ProjectName: "test-project",
-				FromAgent:   "api-expert",
-				ToAgent:     "golang-expert",
-				TaskContext: "test-context",
-				Priority:    models.PriorityNormal,
-				Summary:     "Test handoff",
+				ProjectName:  "test-project",
+				FromAgent:    "api-expert",
+				ToAgent:      "golang-expert",
+				TaskContext:  "test-context",
+				Priority:     models.PriorityNormal,
+				Summary:      "Test handoff",
 				Requirements: []string{"requirement1", "requirement2"},
 				Artifacts: map[string][]string{
 					"created": {"file1.go", "file2.go"},
@@ -165,7 +165,7 @@ func TestHandoffHandler_CreateHandoff(t *testing.T) {
 			payload, _ := json.Marshal(tt.payload)
 			req := httptest.NewRequest("POST", "/api/v1/handoffs", bytes.NewReader(payload))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			rr := httptest.NewRecorder()
 			handler.CreateHandoff(rr, req)
 
@@ -226,7 +226,7 @@ func TestHandoffHandler_GetHandoff(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", "/api/v1/handoffs/"+tt.handoffID, nil)
 			req.SetPathValue("id", tt.handoffID)
-			
+
 			rr := httptest.NewRecorder()
 			handler.GetHandoff(rr, req)
 
@@ -317,11 +317,11 @@ func TestHandoffHandler_UpdateStatus(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			updateReq := models.UpdateStatusRequest{Status: tt.status}
 			payload, _ := json.Marshal(updateReq)
-			
+
 			req := httptest.NewRequest("PUT", "/api/v1/handoffs/"+tt.handoffID+"/status", bytes.NewReader(payload))
 			req.Header.Set("Content-Type", "application/json")
 			req.SetPathValue("id", tt.handoffID)
-			
+
 			rr := httptest.NewRecorder()
 			handler.UpdateStatus(rr, req)
 

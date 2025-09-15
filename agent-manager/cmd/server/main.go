@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"agent-manager/internal/config"
-	"agent-manager/internal/handlers"
-	"agent-manager/internal/middleware"
-	"agent-manager/internal/repository"
-	"agent-manager/internal/service"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/config"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/handlers"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/middleware"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/repository"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/service"
 )
 
 func main() {

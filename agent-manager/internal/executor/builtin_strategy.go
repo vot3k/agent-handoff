@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"agent-manager/internal/agents"
-	"agent-manager/internal/tools"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/agents"
+	"github.com/vot3k/agent-handoff/agent-manager/internal/tools"
 )
 
 // BuiltInAgentStrategy implements agents with native Go logic
@@ -30,7 +30,7 @@ func (b *BuiltInAgentStrategy) CanHandle(agentName string, projectPath string, t
 	// Built-in agents we can handle natively
 	builtInAgents := []string{
 		"project-manager",
-		"architecture-analyzer", 
+		"architecture-analyzer",
 		"architecture-expert",
 		"agent-manager",
 	}
@@ -65,7 +65,7 @@ func (b *BuiltInAgentStrategy) executeProjectManager(ctx context.Context, req Ag
 
 	// Create project analyzer
 	analyzer := agents.NewProjectAnalyzer(req.ProjectPath)
-	
+
 	// Analyze the project
 	analysis, err := analyzer.AnalyzeProject()
 	if err != nil {
@@ -77,7 +77,7 @@ func (b *BuiltInAgentStrategy) executeProjectManager(ctx context.Context, req Ag
 
 	// Generate insights and recommendations
 	insights := b.generateProjectInsights(analysis, req)
-	
+
 	// Create follow-up handoffs based on analysis
 	nextHandoffs := b.createProjectHandoffs(insights, analysis)
 
@@ -89,10 +89,10 @@ func (b *BuiltInAgentStrategy) executeProjectManager(ctx context.Context, req Ag
 		Artifacts:    b.generateProjectArtifacts(analysis),
 		NextHandoffs: nextHandoffs,
 		Metadata: map[string]string{
-			"project_type":    analysis.ProjectType,
-			"total_files":     fmt.Sprintf("%d", analysis.FileCount),
-			"languages":       strings.Join(analysis.Languages, ", "),
-			"insights_count":  fmt.Sprintf("%d", len(insights)),
+			"project_type":   analysis.ProjectType,
+			"total_files":    fmt.Sprintf("%d", analysis.FileCount),
+			"languages":      strings.Join(analysis.Languages, ", "),
+			"insights_count": fmt.Sprintf("%d", len(insights)),
 		},
 	}, nil
 }
@@ -102,7 +102,7 @@ func (b *BuiltInAgentStrategy) executeArchitectureAnalyzer(ctx context.Context, 
 	log.Printf("🏗️ Executing built-in Architecture Analyzer")
 
 	analyzer := agents.NewArchitectureAnalyzer(req.ProjectPath)
-	
+
 	analysis, err := analyzer.AnalyzeArchitecture()
 	if err != nil {
 		return &AgentExecutionResponse{
@@ -135,7 +135,7 @@ func (b *BuiltInAgentStrategy) executeAgentManager(ctx context.Context, req Agen
 
 	// Parse the request to understand what orchestration is needed
 	orchestrationPlan := b.createOrchestrationPlan(req)
-	
+
 	// Generate next handoffs based on the plan
 	nextHandoffs := b.createOrchestrationHandoffs(orchestrationPlan)
 
@@ -464,10 +464,15 @@ func (b *BuiltInAgentStrategy) createOrchestrationHandoffs(plan *agents.Orchestr
 	for i, phase := range plan.Phases {
 		for _, agent := range phase.Agents {
 			handoffs = append(handoffs, NextHandoff{
-				ToAgent:  agent,
-				Summary:  fmt.Sprintf("Execute %s phase: %s", phase.Name, phase.Duration),
-				Context:  fmt.Sprintf("Orchestration plan phase %d of %d", i+1, len(plan.Phases)),
-				Priority: func() string { if i == 0 { return "high" }; return "normal" }(),
+				ToAgent: agent,
+				Summary: fmt.Sprintf("Execute %s phase: %s", phase.Name, phase.Duration),
+				Context: fmt.Sprintf("Orchestration plan phase %d of %d", i+1, len(plan.Phases)),
+				Priority: func() string {
+					if i == 0 {
+						return "high"
+					}
+					return "normal"
+				}(),
 			})
 		}
 	}
@@ -478,7 +483,7 @@ func (b *BuiltInAgentStrategy) createOrchestrationHandoffs(plan *agents.Orchestr
 // Output formatting methods
 func (b *BuiltInAgentStrategy) formatProjectManagerOutput(analysis *agents.ProjectAnalysis, insights []agents.ProjectInsight) string {
 	var output strings.Builder
-	
+
 	output.WriteString("# 📋 Project Management Analysis\n\n")
 	output.WriteString(fmt.Sprintf("**Project Type:** %s\n", analysis.ProjectType))
 	output.WriteString(fmt.Sprintf("**Total Files:** %d\n", analysis.FileCount))
@@ -489,12 +494,15 @@ func (b *BuiltInAgentStrategy) formatProjectManagerOutput(analysis *agents.Proje
 	for i, insight := range insights {
 		icon := "ℹ️"
 		switch insight.Type {
-		case "positive": icon = "✅"
-		case "issue": icon = "⚠️"
-		case "improvement": icon = "🔧"
+		case "positive":
+			icon = "✅"
+		case "issue":
+			icon = "⚠️"
+		case "improvement":
+			icon = "🔧"
 		}
-		
-		output.WriteString(fmt.Sprintf("%d. %s **%s**: %s (Impact: %s)\n", 
+
+		output.WriteString(fmt.Sprintf("%d. %s **%s**: %s (Impact: %s)\n",
 			i+1, icon, insight.Category, insight.Description, insight.Impact))
 	}
 
@@ -507,7 +515,7 @@ func (b *BuiltInAgentStrategy) formatProjectManagerOutput(analysis *agents.Proje
 
 func (b *BuiltInAgentStrategy) formatArchitectureOutput(analysis *agents.ArchitectureAnalysis, recommendations []agents.ArchitectureRecommendation) string {
 	var output strings.Builder
-	
+
 	output.WriteString("# 🏗️ Architecture Analysis Report\n\n")
 	output.WriteString(fmt.Sprintf("**Architecture Pattern:** %s\n", analysis.Pattern))
 	output.WriteString(fmt.Sprintf("**Components:** %d\n", len(analysis.Components)))
@@ -518,12 +526,15 @@ func (b *BuiltInAgentStrategy) formatArchitectureOutput(analysis *agents.Archite
 	for i, rec := range recommendations {
 		priority := "📌"
 		switch rec.Priority {
-		case "high": priority = "🚨"
-		case "medium": priority = "⚠️"
-		case "low": priority = "💡"
+		case "high":
+			priority = "🚨"
+		case "medium":
+			priority = "⚠️"
+		case "low":
+			priority = "💡"
 		}
-		
-		output.WriteString(fmt.Sprintf("%d. %s **%s Priority**: %s\n", 
+
+		output.WriteString(fmt.Sprintf("%d. %s **%s Priority**: %s\n",
 			i+1, priority, rec.Priority, rec.Description))
 		output.WriteString(fmt.Sprintf("   - **Impact**: %s\n\n", rec.Impact))
 	}
@@ -533,7 +544,7 @@ func (b *BuiltInAgentStrategy) formatArchitectureOutput(analysis *agents.Archite
 
 func (b *BuiltInAgentStrategy) formatAgentManagerOutput(plan *agents.OrchestrationPlan) string {
 	var output strings.Builder
-	
+
 	output.WriteString("# 🤖 Agent Orchestration Plan\n\n")
 	output.WriteString(fmt.Sprintf("**Orchestration Type:** %s\n", plan.Type))
 	output.WriteString(fmt.Sprintf("**Estimated Duration:** %s\n", plan.EstimatedDuration))
