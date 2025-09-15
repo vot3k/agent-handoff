@@ -82,12 +82,7 @@ func (h *HandoffHandler) ListHandoffs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pageSize := 20
-	if pageSizeStr != "" {
-		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
-			pageSize = ps
-		}
-	}
+	pageSize, _ := strconv.Atoi(pageSizeStr)
 
 	response, err := h.service.ListHandoffs(r.Context(), projectName, page, pageSize)
 	if err != nil {

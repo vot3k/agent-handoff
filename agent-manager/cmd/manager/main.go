@@ -87,13 +87,24 @@ func main() {
 	log.Printf("Redis address: %s", redisAddr)
 
 	for {
-		// Scan for all project-specific queues
+		// Scan for all project-specific queues using SCAN for better performance
 		queuePattern := "handoff:project:*:queue:*"
-		queues, err := rdb.Keys(ctx, queuePattern).Result()
-		if err != nil {
-			log.Printf("Error scanning for queues with pattern %s: %v", queuePattern, err)
-			time.Sleep(5 * time.Second) // Wait before retrying scan
-			continue
+		var queues []string
+		var cursor uint64
+
+		for {
+			var keys []string
+			var err error
+			keys, cursor, err = rdb.Scan(ctx, cursor, queuePattern, 10).Result()
+			if err != nil {
+				log.Printf("Error scanning for queues with pattern %s: %v", queuePattern, err)
+				time.Sleep(5 * time.Second) // Wait before retrying scan
+				break
+			}
+			queues = append(queues, keys...)
+			if cursor == 0 {
+				break
+			}
 		}
 
 		if len(queues) == 0 {

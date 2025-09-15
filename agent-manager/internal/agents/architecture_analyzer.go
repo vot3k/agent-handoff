@@ -216,7 +216,7 @@ func (a *ArchitectureAnalyzer) analyzeComponents(analysis *ArchitectureAnalysis)
 func (a *ArchitectureAnalyzer) analyzeDependencies(analysis *ArchitectureAnalysis) error {
 	// For each component, analyze its dependencies
 	for _, component := range analysis.Components {
-		deps, err := a.findComponentDependencies(component)
+		deps, err := a.findComponentDependencies(component, analysis.Components)
 		if err != nil {
 			log.Printf("⚠️ Error finding dependencies for %s: %v", component.Name, err)
 			continue
@@ -503,7 +503,7 @@ func (a *ArchitectureAnalyzer) analyzePublicAPI(path string) []string {
 	return publicAPI
 }
 
-func (a *ArchitectureAnalyzer) findComponentDependencies(component ArchitectureComponent) ([]ComponentDependency, error) {
+func (a *ArchitectureAnalyzer) findComponentDependencies(component ArchitectureComponent, allComponents []ArchitectureComponent) ([]ComponentDependency, error) {
 	var dependencies []ComponentDependency
 	
 	// Analyze import statements to find dependencies
@@ -517,7 +517,7 @@ func (a *ArchitectureAnalyzer) findComponentDependencies(component ArchitectureC
 		imports := a.extractImports(path)
 		for _, imp := range imports {
 			// Check if import refers to another component in our project
-			for _, otherComp := range []ArchitectureComponent{} { // Would be passed in
+			for _, otherComp := range allComponents {
 				if strings.Contains(imp, otherComp.Path) {
 					dependencies = append(dependencies, ComponentDependency{
 						From:      component.Name,

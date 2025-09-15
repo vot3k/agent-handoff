@@ -218,14 +218,20 @@ func DetectProjectPath(projectName string) string {
 		return path
 	}
 
-	// Strategy 2: Common development paths
-	commonPaths := []string{
-		fmt.Sprintf("/Users/jimmy/Dev/ai-platforms/%s", projectName),
-		fmt.Sprintf("/Users/jimmy/Dev/%s", projectName),
+	// Strategy 2: Common development paths (configurable via environment)
+	var commonPaths []string
+
+	// Check for user-configured project paths
+	if devPath := os.Getenv("AGENT_DEV_PATH"); devPath != "" {
+		commonPaths = append(commonPaths, fmt.Sprintf("%s/%s", devPath, projectName))
+	}
+
+	// Add standard relative paths
+	commonPaths = append(commonPaths, []string{
 		fmt.Sprintf("../%s", projectName),
 		fmt.Sprintf("/tmp/projects/%s", projectName),
 		fmt.Sprintf("./%s", projectName),
-	}
+	}...)
 
 	for _, path := range commonPaths {
 		if absPath, err := filepath.Abs(path); err == nil {
